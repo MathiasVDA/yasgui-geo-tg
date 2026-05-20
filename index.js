@@ -116,44 +116,44 @@ const ensureSridRegistered = async (srid) => {
 };
 
 
-const builtInBasemaps = {
-  // OpenStreetMap
-  openStreetMap: L.tileLayer(
+// Each basemap is a factory so every map instance gets its own L.tileLayer.
+// A single tile layer cannot be shared across maps — sharing causes tiles to
+// fail loading when the plugin is re-instantiated on the same page.
+const builtInBasemapFactories = {
+  openStreetMap: () => L.tileLayer(
     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {
-      attribution: '© OpenStreetMap contributors',
-    },
+    { attribution: '© OpenStreetMap contributors' },
   ),
-  // OpenTopoMap
-  openTopoMap: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenTopoMap contributors',
-  }),
-
-  // ESRI World Imagery (Satellite)
-  'ESRI World Imagery (Satellite)': L.tileLayer(
+  openTopoMap: () => L.tileLayer(
+    'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    { attribution: '© OpenTopoMap contributors' },
+  ),
+  'ESRI World Imagery (Satellite)': () => L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     {
       attribution:
         'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
     },
   ),
-
-  // CartoDB Voyager
-  'CartoDB Voyager': L.tileLayer(
+  'CartoDB Voyager': () => L.tileLayer(
     'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    {
-      attribution: '&copy; CartoDB',
-    },
+    { attribution: '&copy; CartoDB' },
   ),
-
-  // CartoDB Dark Matter (good for dark mode)
-  'CartoDB Dark Matter': L.tileLayer(
+  'CartoDB Dark Matter': () => L.tileLayer(
     'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    {
-      attribution: '&copy; CartoDB',
-    },
+    { attribution: '&copy; CartoDB' },
   ),
 };
+
+// Build a fresh set of basemap layers, accepting either a factory map (preferred)
+// or a legacy map of pre-built L.tileLayer instances (treated as-is for back-compat).
+function buildBasemaps(source) {
+  const out = {};
+  for (const [name, value] of Object.entries(source)) {
+    out[name] = typeof value === 'function' ? value() : value;
+  }
+  return out;
+}
 
 /**
  * Recursively reprojects all coordinates in a GeoJSON geometry
@@ -398,6 +398,8 @@ class GeoPlugin {
     this.styleStorageKey = getStyleStorageKey(yasr, this.options);
     this.styleState = loadStyleState(this.styleStorageKey);
     this.timeSelection = null;
+    // 'heatmap' | 'cluster' | 'all'
+    this._displayMode = this.options.heatmap ? 'heatmap' : 'cluster';
     this.updateColumns();
   }
 
@@ -432,6 +434,7 @@ class GeoPlugin {
    */
   async draw() {
     this.updateColumns();
+    this._mapFitted = false;
     await this.updateMap();
   }
 
@@ -441,12 +444,15 @@ class GeoPlugin {
    */
   async updateMap() {
     const opts = this.options;
-    const basemaps = opts.basemaps || builtInBasemaps;
     if (!this.container) {
+      const basemaps = buildBasemaps(opts.basemaps || builtInBasemapFactories);
       this.container = document.createElement('div');
       this.container.style.height = '100%';
       this.container.style.minHeight = `${opts.minHeight}px`;
       this.container.style.width = '100%';
+      // Attach to the DOM before L.map() so Leaflet reads the real container
+      // dimensions at init time and loads the correct tile range immediately.
+      this.yasr.resultsEl.appendChild(this.container);
       const map = L.map(this.container, {
         center: opts.initialView.center,
         zoom: opts.initialView.zoom,
@@ -498,14 +504,27 @@ class GeoPlugin {
         });
       }
       if (opts.heatmapControl) {
+        const DISPLAY_MODES = [
+          { mode: 'heatmap', icon: '🔥', title: 'Switch to cluster view' },
+          { mode: 'cluster', icon: '📍', title: 'Disable grouping (show all)' },
+          { mode: 'all',     icon: '📌', title: 'Switch to heatmap view' },
+        ];
         const HeatToggle = L.Control.extend({
           options: { position: 'topleft' },
           onAdd: () => {
             const div = L.DomUtil.create('div', 'leaflet-bar yasgui-geo-heatmap-toggle');
             const btn = document.createElement('a');
             btn.href = '#';
-            btn.title = opts.heatmap ? 'Switch to marker view' : 'Switch to heatmap view';
-            btn.textContent = opts.heatmap ? '🔥' : '📍';
+            const currentEntry = () => DISPLAY_MODES.find(d => d.mode === this._displayMode) || DISPLAY_MODES[1];
+            const nextEntry = () => {
+              const idx = DISPLAY_MODES.findIndex(d => d.mode === this._displayMode);
+              return DISPLAY_MODES[(idx + 1) % DISPLAY_MODES.length];
+            };
+            const syncBtn = () => {
+              btn.textContent = currentEntry().icon;
+              btn.title = nextEntry().title;
+            };
+            syncBtn();
             btn.style.fontSize = '16px';
             btn.style.textAlign = 'center';
             btn.style.textDecoration = 'none';
@@ -514,9 +533,8 @@ class GeoPlugin {
             btn.addEventListener('click', (e) => {
               e.preventDefault();
               e.stopPropagation();
-              this.options.heatmap = !this.options.heatmap;
-              btn.textContent = this.options.heatmap ? '🔥' : '📍';
-              btn.title = this.options.heatmap ? 'Switch to marker view' : 'Switch to heatmap view';
+              this._displayMode = nextEntry().mode;
+              syncBtn();
               this.updateMap();
             });
             div.append(btn);
@@ -635,7 +653,7 @@ class GeoPlugin {
         f => f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint',
       ).length;
 
-      if (opts.heatmap && pointCount > 0 && typeof L.heatLayer === 'function') {
+      if (this._displayMode === 'heatmap' && pointCount > 0 && typeof L.heatLayer === 'function') {
         const heatPoints = [];
         for (const f of visibleCollection.features) {
           if (f.geometry?.type === 'Point') {
@@ -658,7 +676,8 @@ class GeoPlugin {
         };
         if (vectorOnly.features.length) lg.addLayer(L.geoJson(vectorOnly, newLayers.options));
       } else {
-        const useCluster = opts.clustering
+        const useCluster = this._displayMode !== 'all'
+          && opts.clustering
           && pointCount >= opts.clusterMinPoints
           && typeof L.markerClusterGroup === 'function';
         if (useCluster) {
@@ -676,7 +695,13 @@ class GeoPlugin {
               });
             },
           });
-          cluster.addLayer(newLayers);
+          newLayers.eachLayer(layer => {
+            if (typeof layer.getLatLng === 'function') {
+              cluster.addLayer(layer);
+            } else {
+              lg.addLayer(layer);
+            }
+          });
           lg.addLayer(cluster);
         } else {
           lg.addLayer(newLayers);
@@ -685,7 +710,7 @@ class GeoPlugin {
       lg.addTo(this.map);
       this.layerControl.addOverlay(lg, `?${colName}`);
       this.columnLayers.set(colName, lg);
-      const b = lg.getBounds();
+      const b = newLayers.getBounds();
       if (b.isValid()) allBounds.extend(b);
     }
 
@@ -693,7 +718,8 @@ class GeoPlugin {
 
     setTimeout(() => {
       this.map.invalidateSize();
-      if (allBounds.isValid()) {
+      if (!this._mapFitted && allBounds.isValid()) {
+        this._mapFitted = true;
         this.map.fitBounds(allBounds, { padding: [20, 20], maxZoom: opts.maxZoom });
       }
     }, 100);
