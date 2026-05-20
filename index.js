@@ -116,35 +116,96 @@ const basemaps = {
   ),
 };
 
-const parseWKT = async (wkt) => {
-  // betterknown's wktToGeoJSON function already handles SRID prefixes
-  // and the <http://www.opengis.net/def/crs/EPSG/0/4326> prefix with lat/lon order
-  // so we can directly pass the WKT string to it.
-  if (wkt.startsWith('<http://www.opengis.net/def/crs/EPSG/0/4326>')) {
-    return wktToGeoJSON(wkt, { proj: proj4 });
+/**
+ * Recursively reprojects all coordinates in a GeoJSON geometry
+ * from a source CRS to WGS84 (EPSG:4326).
+ * Handles GeometryCollection by recursing into sub-geometries.
+ *
+ * @param {Object} geometry - GeoJSON geometry object
+ * @param {string} fromCRS - Source CRS string (e.g. 'EPSG:25832')
+ * @returns {Object} New geometry with reprojected coordinates
+ */
+const reprojectGeometry = (geometry, fromCRS) => {
+  if (!geometry) return geometry;
+  if (geometry.type === 'GeometryCollection') {
+    return {
+      ...geometry,
+      geometries: geometry.geometries.map(g => reprojectGeometry(g, fromCRS)),
+    };
   }
-  // if it has a prefix in the style of <http://www.opengis.net/def/crs/EPSG/0/xxxx>
-  // we need to extract xxxx and replace it with SRLD=xxxx;
-  // we also need to fetch the projection info from epsg.io and pass it to betterknown
+  const transformCoords = (coords) => {
+    if (!Array.isArray(coords)) return coords;
+    if (typeof coords[0] === 'number') {
+      const [lng, lat] = proj4(fromCRS, 'EPSG:4326', [coords[0], coords[1]]);
+      return coords.length > 2 ? [lng, lat, coords[2]] : [lng, lat];
+    }
+    return coords.map(transformCoords);
+  };
+  return { ...geometry, coordinates: transformCoords(geometry.coordinates) };
+};
+
+/**
+ * Recursively swaps lat/lon axis order in a GeoJSON geometry.
+ * Used for OGC WKT with the EPSG:4326 URI, which stores coordinates as (lat, lon).
+ * Handles GeometryCollection by recursing into sub-geometries.
+ *
+ * @param {Object} geometry - GeoJSON geometry object
+ * @returns {Object} New geometry with swapped axes
+ */
+const swapLatLon = (geometry) => {
+  if (!geometry) return geometry;
+  if (geometry.type === 'GeometryCollection') {
+    return {
+      ...geometry,
+      geometries: geometry.geometries.map(swapLatLon),
+    };
+  }
+  const swapCoords = (coords) => {
+    if (!Array.isArray(coords)) return coords;
+    if (typeof coords[0] === 'number') {
+      return coords.length > 2 ? [coords[1], coords[0], coords[2]] : [coords[1], coords[0]];
+    }
+    return coords.map(swapCoords);
+  };
+  return { ...geometry, coordinates: swapCoords(geometry.coordinates) };
+};
+
+const parseWKT = async (wkt) => {
+  // OGC URI with EPSG:4326 — coordinates are in (lat, lon) order per the OGC standard.
+  // Parse the raw WKT without betterknown's SRID handling, then swap axes ourselves.
+  // This also correctly handles GeometryCollection sub-geometries, unlike betterknown's
+  // built-in proj integration which loses the inherited SRID for nested geometries.
+  if (wkt.startsWith('<http://www.opengis.net/def/crs/EPSG/0/4326>')) {
+    const match = wkt.match(/^<http:\/\/www\.opengis\.net\/def\/crs\/EPSG\/0\/4326>\s*([\s\S]*)$/);
+    if (match) {
+      return swapLatLon(wktToGeoJSON(match[1].trim()));
+    }
+  }
+  // OGC URI with other EPSG codes — parse raw WKT and reproject manually.
+  // betterknown's proj4 integration is bypassed because it loses the inherited SRID
+  // when recursing into GeometryCollection sub-geometries (sets srid: null on inner geoms).
   if (wkt.startsWith('<http://www.opengis.net/def/crs/EPSG/0/')) {
     const match = wkt.match(/^<http:\/\/www\.opengis\.net\/def\/crs\/EPSG\/0\/(\d+)>\s*([\s\S]*)$/);
     if (match) {
       const epsgCode = match[1];
-      const wktWithoutPrefix = match[2].trim();
-      const wktWithSRID = `SRID=${epsgCode};${wktWithoutPrefix}`;
       await ensureSridRegistered(epsgCode);
-      return wktToGeoJSON(wktWithSRID, { proj: proj4 });
+      return reprojectGeometry(wktToGeoJSON(match[2].trim()), `EPSG:${epsgCode}`);
     }
   }
-  // if there is a SRID=xxxx; prefix, ensure the srid is registered
-  // and pass to betterknown
-  if (wkt.startsWith('SRID=')) {
-    const match = wkt.match(/^SRID=(\d+);/);
+  // SRID=xxxx; prefix — same issue with betterknown, reproject manually.
+  if (wkt.startsWith('SRID=') || wkt.startsWith('srid=')) {
+    const match = wkt.match(/^SRID=(\d+);([\s\S]*)$/i);
     if (match) {
       const epsgCode = match[1];
+      const rawWkt = match[2].trim();
+      if (epsgCode === '4326') {
+        return wktToGeoJSON(rawWkt);
+      }
       await ensureSridRegistered(epsgCode);
+      return reprojectGeometry(wktToGeoJSON(rawWkt), `EPSG:${epsgCode}`);
     }
   }
+  // Plain WKT with no CRS prefix — assumed WGS84 (lon/lat), pass through as-is.
   return wktToGeoJSON(wkt, { proj: proj4 });
 }
 
