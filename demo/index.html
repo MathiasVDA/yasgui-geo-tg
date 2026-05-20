@@ -1,15 +1,240 @@
-<!doctype html>
+<!DOCTYPE html>
+<!--
+  Geo Plugin Standalone Demo
+
+  This demo runs the geo plugin independently without YASGUI.
+  It uses mock SPARQL results to demonstrate all plugin features.
+
+  To develop locally: npm run dev (http://localhost:3000)
+-->
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>yasgui-geo-tg demo</title>
-  </head>
-  <body>
-    <h1>yasgui-geo-tg demo</h1>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geo Plugin - Standalone Demo</title>
 
-    <div id="yasgui"></div>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-    <script type="module" src="/main.js"></script>
-  </body>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 {
+      color: #333;
+      margin: 0 0 10px 0;
+      font-size: 28px;
+    }
+
+    .controls-bar {
+      background: white;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .controls-bar select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+    }
+
+    .controls-bar label {
+      font-size: 14px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      border-left: 3px solid #1976d2;
+    }
+
+    #demo-container {
+      flex: 1;
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌍 Geo Plugin Standalone Demo</h1>
+
+  <div class="controls-bar">
+    <label>
+      Dataset:
+      <select id="dataset-selector">
+        <option value="stations">WKT Points — European Train Stations</option>
+        <option value="cities">Lat/Lon Auto-detect — World Capitals</option>
+        <option value="regions">WKT Polygons — European Regions</option>
+        <option value="mixed">Mixed Geometry — Points, Lines &amp; Polygons</option>
+        <option value="geohash">GeoHash — Random Points</option>
+      </select>
+    </label>
+
+    <div class="info">
+      💡 This demo runs the plugin standalone without YASGUI
+    </div>
+  </div>
+
+  <div id="demo-container"></div>
+
+  <script type="module">
+    import GeoPlugin from '../index.js';
+
+    const WKT = 'http://www.opengis.net/ont/geosparql#wktLiteral';
+    const GH  = 'http://www.opengis.net/ont/geosparql#geoHash';
+    const XSD = 'http://www.w3.org/2001/XMLSchema#';
+
+    // ── Mock SPARQL datasets ────────────────────────────────────────────────
+
+    const mockData = {
+
+      // WKT POINT geometries — European train stations
+      stations: {
+        head: { vars: ['station', 'name', 'geometry', 'wktLabel', 'wktTooltip'] },
+        results: {
+          bindings: [
+            { station: { type: 'uri', value: 'http://example.org/station/brussels' },   name: { type: 'literal', value: 'Brussels-Central' },        geometry: { type: 'literal', value: 'POINT(4.3560 50.8453)',   datatype: WKT }, wktLabel: { type: 'literal', value: 'Brussels-Central' },        wktTooltip: { type: 'literal', value: 'Belgium' } },
+            { station: { type: 'uri', value: 'http://example.org/station/amsterdam' },  name: { type: 'literal', value: 'Amsterdam Centraal' },       geometry: { type: 'literal', value: 'POINT(4.9000 52.3789)',   datatype: WKT }, wktLabel: { type: 'literal', value: 'Amsterdam Centraal' },       wktTooltip: { type: 'literal', value: 'Netherlands' } },
+            { station: { type: 'uri', value: 'http://example.org/station/paris' },      name: { type: 'literal', value: 'Paris Gare du Nord' },        geometry: { type: 'literal', value: 'POINT(2.3553 48.8809)',   datatype: WKT }, wktLabel: { type: 'literal', value: 'Paris Gare du Nord' },        wktTooltip: { type: 'literal', value: 'France' } },
+            { station: { type: 'uri', value: 'http://example.org/station/london' },     name: { type: 'literal', value: 'London St Pancras' },         geometry: { type: 'literal', value: 'POINT(-0.1233 51.5318)',  datatype: WKT }, wktLabel: { type: 'literal', value: 'London St Pancras' },         wktTooltip: { type: 'literal', value: 'United Kingdom' } },
+            { station: { type: 'uri', value: 'http://example.org/station/berlin' },     name: { type: 'literal', value: 'Berlin Hauptbahnhof' },        geometry: { type: 'literal', value: 'POINT(13.3690 52.5251)',  datatype: WKT }, wktLabel: { type: 'literal', value: 'Berlin Hauptbahnhof' },        wktTooltip: { type: 'literal', value: 'Germany' } },
+            { station: { type: 'uri', value: 'http://example.org/station/cologne' },    name: { type: 'literal', value: 'Cologne Hauptbahnhof' },       geometry: { type: 'literal', value: 'POINT(6.9588 50.9428)',   datatype: WKT }, wktLabel: { type: 'literal', value: 'Cologne Hauptbahnhof' },       wktTooltip: { type: 'literal', value: 'Germany' } },
+            { station: { type: 'uri', value: 'http://example.org/station/vienna' },     name: { type: 'literal', value: 'Vienna Hauptbahnhof' },        geometry: { type: 'literal', value: 'POINT(16.3758 48.1850)',  datatype: WKT }, wktLabel: { type: 'literal', value: 'Vienna Hauptbahnhof' },        wktTooltip: { type: 'literal', value: 'Austria' } },
+            { station: { type: 'uri', value: 'http://example.org/station/zurich' },     name: { type: 'literal', value: 'Zürich Hauptbahnhof' },        geometry: { type: 'literal', value: 'POINT(8.5397 47.3783)',   datatype: WKT }, wktLabel: { type: 'literal', value: 'Zürich Hauptbahnhof' },        wktTooltip: { type: 'literal', value: 'Switzerland' } },
+            { station: { type: 'uri', value: 'http://example.org/station/madrid' },     name: { type: 'literal', value: 'Madrid Puerta de Atocha' },    geometry: { type: 'literal', value: 'POINT(-3.6908 40.4065)',  datatype: WKT }, wktLabel: { type: 'literal', value: 'Madrid Atocha' },             wktTooltip: { type: 'literal', value: 'Spain' } },
+            { station: { type: 'uri', value: 'http://example.org/station/rome' },       name: { type: 'literal', value: 'Roma Termini' },               geometry: { type: 'literal', value: 'POINT(12.5022 41.9003)',  datatype: WKT }, wktLabel: { type: 'literal', value: 'Roma Termini' },               wktTooltip: { type: 'literal', value: 'Italy' } },
+            { station: { type: 'uri', value: 'http://example.org/station/warsaw' },     name: { type: 'literal', value: 'Warsaw Centralna' },           geometry: { type: 'literal', value: 'POINT(21.0032 52.2285)',  datatype: WKT }, wktLabel: { type: 'literal', value: 'Warsaw Centralna' },           wktTooltip: { type: 'literal', value: 'Poland' } },
+            { station: { type: 'uri', value: 'http://example.org/station/prague' },     name: { type: 'literal', value: 'Praha hl.n.' },                geometry: { type: 'literal', value: 'POINT(14.4353 50.0831)',  datatype: WKT }, wktLabel: { type: 'literal', value: 'Praha hl.n.' },                wktTooltip: { type: 'literal', value: 'Czech Republic' } },
+          ]
+        }
+      },
+
+      // Numeric lat/lon columns — auto-detected as WKT POINT
+      cities: {
+        head: { vars: ['city', 'name', 'lat', 'lon', 'population', 'country'] },
+        results: {
+          bindings: [
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Tokyo' },          name: { type: 'literal', value: 'Tokyo' },          lat: { type: 'literal', value: '35.6762',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '139.6503', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '13960000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Japan' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Delhi' },           name: { type: 'literal', value: 'Delhi' },          lat: { type: 'literal', value: '28.7041',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '77.1025',  datatype: XSD + 'decimal' }, population: { type: 'literal', value: '30290000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'India' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Shanghai' },        name: { type: 'literal', value: 'Shanghai' },       lat: { type: 'literal', value: '31.2304',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '121.4737', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '24280000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'China' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/São_Paulo' },       name: { type: 'literal', value: 'São Paulo' },      lat: { type: 'literal', value: '-23.5505', datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '-46.6333', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '12325000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Brazil' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Mexico_City' },     name: { type: 'literal', value: 'Mexico City' },    lat: { type: 'literal', value: '19.4326',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '-99.1332', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '9210000',  datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Mexico' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Cairo' },           name: { type: 'literal', value: 'Cairo' },          lat: { type: 'literal', value: '30.0444',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '31.2357',  datatype: XSD + 'decimal' }, population: { type: 'literal', value: '10100000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Egypt' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Mumbai' },          name: { type: 'literal', value: 'Mumbai' },         lat: { type: 'literal', value: '19.0760',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '72.8777',  datatype: XSD + 'decimal' }, population: { type: 'literal', value: '12478000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'India' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Beijing' },         name: { type: 'literal', value: 'Beijing' },        lat: { type: 'literal', value: '39.9042',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '116.4074', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '21540000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'China' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Dhaka' },           name: { type: 'literal', value: 'Dhaka' },          lat: { type: 'literal', value: '23.8103',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '90.4125',  datatype: XSD + 'decimal' }, population: { type: 'literal', value: '8906000',  datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Bangladesh' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Osaka' },           name: { type: 'literal', value: 'Osaka' },          lat: { type: 'literal', value: '34.6937',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '135.5023', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '2691000',  datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Japan' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/New_York_City' },   name: { type: 'literal', value: 'New York' },       lat: { type: 'literal', value: '40.7128',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '-74.0060', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '8336817', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'USA' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Buenos_Aires' },    name: { type: 'literal', value: 'Buenos Aires' },   lat: { type: 'literal', value: '-34.6037', datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '-58.3816', datatype: XSD + 'decimal' }, population: { type: 'literal', value: '3054300',  datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Argentina' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Kinshasa' },        name: { type: 'literal', value: 'Kinshasa' },       lat: { type: 'literal', value: '-4.3317',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '15.3220',  datatype: XSD + 'decimal' }, population: { type: 'literal', value: '15628000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'DR Congo' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Istanbul' },        name: { type: 'literal', value: 'Istanbul' },       lat: { type: 'literal', value: '41.0082',  datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '28.9784',  datatype: XSD + 'decimal' }, population: { type: 'literal', value: '15460000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Turkey' } },
+            { city: { type: 'uri', value: 'http://dbpedia.org/resource/Lagos' },           name: { type: 'literal', value: 'Lagos' },          lat: { type: 'literal', value: '6.5244',   datatype: XSD + 'decimal' }, lon: { type: 'literal', value: '3.3792',   datatype: XSD + 'decimal' }, population: { type: 'literal', value: '14862000', datatype: XSD + 'integer' }, country: { type: 'literal', value: 'Nigeria' } },
+          ]
+        }
+      },
+
+      // WKT POLYGON geometries — simplified European country outlines
+      regions: {
+        head: { vars: ['region', 'name', 'geometry', 'wktLabel', 'capital'] },
+        results: {
+          bindings: [
+            { region: { type: 'uri', value: 'http://example.org/country/belgium' },     name: { type: 'literal', value: 'Belgium' },     geometry: { type: 'literal', value: 'POLYGON((2.55 49.50, 6.40 49.50, 6.40 51.50, 2.55 51.50, 2.55 49.50))',                             datatype: WKT }, wktLabel: { type: 'literal', value: 'Belgium' },     capital: { type: 'literal', value: 'Brussels' } },
+            { region: { type: 'uri', value: 'http://example.org/country/netherlands' }, name: { type: 'literal', value: 'Netherlands' }, geometry: { type: 'literal', value: 'POLYGON((3.36 50.75, 7.23 50.75, 7.23 53.59, 3.36 53.59, 3.36 50.75))',                           datatype: WKT }, wktLabel: { type: 'literal', value: 'Netherlands' }, capital: { type: 'literal', value: 'Amsterdam' } },
+            { region: { type: 'uri', value: 'http://example.org/country/luxembourg' },  name: { type: 'literal', value: 'Luxembourg' },  geometry: { type: 'literal', value: 'POLYGON((5.74 49.44, 6.53 49.44, 6.53 50.18, 5.74 50.18, 5.74 49.44))',                           datatype: WKT }, wktLabel: { type: 'literal', value: 'Luxembourg' },  capital: { type: 'literal', value: 'Luxembourg City' } },
+            { region: { type: 'uri', value: 'http://example.org/country/switzerland' }, name: { type: 'literal', value: 'Switzerland' }, geometry: { type: 'literal', value: 'POLYGON((5.96 45.82, 10.49 45.82, 10.49 47.81, 5.96 47.81, 5.96 45.82))',                         datatype: WKT }, wktLabel: { type: 'literal', value: 'Switzerland' }, capital: { type: 'literal', value: 'Bern' } },
+            { region: { type: 'uri', value: 'http://example.org/country/austria' },     name: { type: 'literal', value: 'Austria' },     geometry: { type: 'literal', value: 'POLYGON((9.53 46.37, 17.16 46.37, 17.16 49.02, 9.53 49.02, 9.53 46.37))',                         datatype: WKT }, wktLabel: { type: 'literal', value: 'Austria' },     capital: { type: 'literal', value: 'Vienna' } },
+            { region: { type: 'uri', value: 'http://example.org/country/denmark' },     name: { type: 'literal', value: 'Denmark' },     geometry: { type: 'literal', value: 'POLYGON((8.09 54.56, 15.19 54.56, 15.19 57.75, 8.09 57.75, 8.09 54.56))',                         datatype: WKT }, wktLabel: { type: 'literal', value: 'Denmark' },     capital: { type: 'literal', value: 'Copenhagen' } },
+          ]
+        }
+      },
+
+      // Mixed geometry — points, a linestring and a polygon
+      mixed: {
+        head: { vars: ['feature', 'label', 'geometry', 'wktLabel', 'wktTooltip', 'type'] },
+        results: {
+          bindings: [
+            { feature: { type: 'uri', value: 'http://example.org/feature/eiffel' },     label: { type: 'literal', value: 'Eiffel Tower' },              geometry: { type: 'literal', value: 'POINT(2.2945 48.8584)',                                                                                                                                                                   datatype: WKT }, wktLabel: { type: 'literal', value: 'Eiffel Tower' },     wktTooltip: { type: 'literal', value: 'Landmark' },    type: { type: 'literal', value: 'Point' } },
+            { feature: { type: 'uri', value: 'http://example.org/feature/bigben' },      label: { type: 'literal', value: 'Big Ben' },                   geometry: { type: 'literal', value: 'POINT(-0.1246 51.5007)',                                                                                                                                                                  datatype: WKT }, wktLabel: { type: 'literal', value: 'Big Ben' },          wktTooltip: { type: 'literal', value: 'Landmark' },    type: { type: 'literal', value: 'Point' } },
+            { feature: { type: 'uri', value: 'http://example.org/feature/colosseum' },   label: { type: 'literal', value: 'Colosseum' },                 geometry: { type: 'literal', value: 'POINT(12.4922 41.8902)',                                                                                                                                                                  datatype: WKT }, wktLabel: { type: 'literal', value: 'Colosseum' },        wktTooltip: { type: 'literal', value: 'Landmark' },    type: { type: 'literal', value: 'Point' } },
+            { feature: { type: 'uri', value: 'http://example.org/feature/sagrada' },     label: { type: 'literal', value: 'Sagrada Família' },           geometry: { type: 'literal', value: 'POINT(2.1744 41.4036)',                                                                                                                                                                   datatype: WKT }, wktLabel: { type: 'literal', value: 'Sagrada Família' },  wktTooltip: { type: 'literal', value: 'Landmark' },    type: { type: 'literal', value: 'Point' } },
+            { feature: { type: 'uri', value: 'http://example.org/feature/route' },       label: { type: 'literal', value: 'Paris–Brussels rail route' }, geometry: { type: 'literal', value: 'LINESTRING(2.3553 48.8809, 3.1000 50.3000, 4.3560 50.8453)',                                                                                                                             datatype: WKT }, wktLabel: { type: 'literal', value: 'Paris–Brussels' },   wktTooltip: { type: 'literal', value: 'Rail route' }, type: { type: 'literal', value: 'LineString' } },
+            { feature: { type: 'uri', value: 'http://example.org/feature/park' },        label: { type: 'literal', value: 'Hyde Park (approx.)' },       geometry: { type: 'literal', value: 'POLYGON((-0.1762 51.5073, -0.1393 51.5073, -0.1393 51.5155, -0.1762 51.5155, -0.1762 51.5073))',                                                                                         datatype: WKT }, wktLabel: { type: 'literal', value: 'Hyde Park' },        wktTooltip: { type: 'literal', value: 'Park' },       type: { type: 'literal', value: 'Polygon' } },
+          ]
+        }
+      },
+
+      // GeoHash encoded points — a spread of locations in Western Europe
+      geohash: {
+        head: { vars: ['place', 'name', 'location'] },
+        results: {
+          bindings: [
+            { place: { type: 'uri', value: 'http://example.org/place/u10hb' }, name: { type: 'literal', value: 'Brussels area'  }, location: { type: 'literal', value: 'u10hb',  datatype: GH } },
+            { place: { type: 'uri', value: 'http://example.org/place/u1736' }, name: { type: 'literal', value: 'Amsterdam area' }, location: { type: 'literal', value: 'u1736',  datatype: GH } },
+            { place: { type: 'uri', value: 'http://example.org/place/u09tv' }, name: { type: 'literal', value: 'Paris area'     }, location: { type: 'literal', value: 'u09tv',  datatype: GH } },
+            { place: { type: 'uri', value: 'http://example.org/place/gcpvj' }, name: { type: 'literal', value: 'London area'    }, location: { type: 'literal', value: 'gcpvj',  datatype: GH } },
+            { place: { type: 'uri', value: 'http://example.org/place/u33d7' }, name: { type: 'literal', value: 'Berlin area'    }, location: { type: 'literal', value: 'u33d7',  datatype: GH } },
+            { place: { type: 'uri', value: 'http://example.org/place/u3mb5' }, name: { type: 'literal', value: 'Hamburg area'   }, location: { type: 'literal', value: 'u3mb5',  datatype: GH } },
+            { place: { type: 'uri', value: 'http://example.org/place/u0nd6' }, name: { type: 'literal', value: 'Lyon area'      }, location: { type: 'literal', value: 'u0nd6',  datatype: GH } },
+            { place: { type: 'uri', value: 'http://example.org/place/spgw5' }, name: { type: 'literal', value: 'Madrid area'    }, location: { type: 'literal', value: 'spgw5',  datatype: GH } },
+          ]
+        }
+      },
+    };
+
+    // ── Plugin initialisation ────────────────────────────────────────────────
+
+    const container = document.getElementById('demo-container');
+    let currentDataset = 'stations';
+    let plugin = null;
+
+    async function loadDataset(key) {
+      // Clear previous map
+      container.innerHTML = '';
+
+      const mockYasr = {
+        config: { plugins: { geo: {} } },
+        results: { json: mockData[key] },
+        resultsEl: container,
+      };
+
+      plugin = new GeoPlugin(mockYasr);
+      await plugin.draw();
+      console.log(`✅ Loaded dataset: ${key}`);
+    }
+
+    await loadDataset(currentDataset);
+
+    document.getElementById('dataset-selector').addEventListener('change', async (e) => {
+      currentDataset = e.target.value;
+      await loadDataset(currentDataset);
+    });
+  </script>
+</body>
 </html>
