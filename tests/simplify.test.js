@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { simplifyFeatureCollection } from '../src/simplify.js';
+import { normalizeSimplifyTolerance, simplifyFeatureCollection } from '../src/simplify.js';
 
 describe('simplifyFeatureCollection', () => {
+  it('normalizes slider tolerance values', () => {
+    expect(normalizeSimplifyTolerance(-1)).toBe(0);
+    expect(normalizeSimplifyTolerance('oops')).toBe(0);
+    expect(normalizeSimplifyTolerance(0.2, 0.05)).toBe(0.05);
+  });
+
   it('returns input unchanged when tolerance is 0', () => {
     const fc = { type: 'FeatureCollection', features: [] };
     expect(simplifyFeatureCollection(fc, 0)).toBe(fc);

@@ -18,7 +18,7 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 - **Marker clustering** for large point sets (leaflet.markercluster)
 - Optional **heatmap** rendering (leaflet.heat)
 - **Drawing tools** that emit a ready-to-paste GeoSPARQL `sfWithin` filter
-- **Geometry simplification** via turf-simplify
+- **Geometry simplification** via turf-simplify with a live tolerance slider
 - **Export** current results to GeoJSON, KML or CSV (with synthesized WKT), or copy GeoJSON to the clipboard
 - **Permalink** mode: map view encoded in the URL hash
 - Live **coordinate readout** and **distance-measure** tool

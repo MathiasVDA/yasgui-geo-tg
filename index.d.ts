@@ -45,6 +45,12 @@ export interface GeoPluginOptions {
   drawing?: boolean;
   /** Simplification tolerance in degrees (turf-simplify). `0` disables. Default `0`. */
   simplifyTolerance?: number;
+  /** Show interactive simplification tolerance slider. Default `true`. */
+  simplifyControl?: boolean;
+  /** Max simplification tolerance exposed by the slider. Default `0.05`. */
+  simplifyMaxTolerance?: number;
+  /** Step size for the simplification slider. Default `0.0001`. */
+  simplifyStep?: number;
   /** Show export-to-GeoJSON/KML/CSV control. Default `true`. */
   exportControl?: boolean;
   /** Persist map state in the URL hash. Default `false`. */

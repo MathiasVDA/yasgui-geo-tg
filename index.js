@@ -11,7 +11,7 @@ import { injectLatLonPointColumn } from './src/latlon.js';
 import { parseGML } from './src/gml.js';
 import { parseGeoHash } from './src/geohash.js';
 import { enableDrawing } from './src/draw.js';
-import { simplifyFeatureCollection } from './src/simplify.js';
+import { addSimplifyControl, simplifyFeatureCollection } from './src/simplify.js';
 import { addExportControl } from './src/export.js';
 import { bindHashState } from './src/permalink.js';
 import { addCoordinateDisplay, addMeasureControl } from './src/controls.js';
@@ -337,6 +337,9 @@ const DEFAULT_OPTIONS = {
   heatmapBlur: 15,
   drawing: false,
   simplifyTolerance: 0,
+  simplifyControl: true,
+  simplifyMaxTolerance: 0.05,
+  simplifyStep: 0.0001,
   exportControl: true,
   permalink: false,
   showCoordinates: true,
@@ -451,6 +454,15 @@ class GeoPlugin {
       if (opts.styleControl) {
         addStyleControl(map, this.styleState, (nextStyle) => {
           this.styleState = saveStyleState(this.styleStorageKey, nextStyle);
+          this.updateMap();
+        });
+      }
+      if (opts.simplifyControl) {
+        addSimplifyControl(map, opts.simplifyTolerance, {
+          max: opts.simplifyMaxTolerance,
+          step: opts.simplifyStep,
+        }, (tolerance) => {
+          this.options.simplifyTolerance = tolerance;
           this.updateMap();
         });
       }

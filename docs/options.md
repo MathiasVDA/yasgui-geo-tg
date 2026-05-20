@@ -38,12 +38,21 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 | `basemaps` | `{ [name]: L.TileLayer }` | built-in | Replace the bundled basemap dictionary. |
 | `styleControl` | `boolean` | `true` | Show the compact style control for default color, opacity, fill, stroke width and marker radius. |
 | `styleStorageKey` | `string \| null` | query hash | Override the localStorage key used to persist style-control values. |
+| `simplifyTolerance` | `number` | `0` | Initial turf-simplify tolerance in degrees. |
+| `simplifyControl` | `boolean` | `true` | Show a live simplification tolerance slider. |
+| `simplifyMaxTolerance` | `number` | `0.05` | Maximum tolerance exposed by the slider. |
+| `simplifyStep` | `number` | `0.0001` | Slider step size. |
 
 ## Styling
 
 The style control persists default visual settings in `localStorage`, keyed by
 the current endpoint/query when YASQE is available. A per-row `?wktColor`
 binding still overrides the selected default color for that feature.
+
+## Simplification
+
+The simplification slider adjusts turf-simplify tolerance for line and polygon
+features. Points are never simplified. A value of `0` disables simplification.
 
 ## Convention-based per-feature controls
 
