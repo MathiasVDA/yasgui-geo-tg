@@ -9,9 +9,30 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 
 ## Features
 
-- Geographic data visualization
-- Integration with YASGUI
-- On-the-fly reprojection using proj4 (and automatic fetching of epsg.io for unknown SRIDs).
+- WKT, GeoJSON, **and GML** geometry rendering on a Leaflet map
+- On-the-fly reprojection using proj4 — 15+ embedded SRIDs plus automatic fetch from epsg.io for unknown ones
+- OGC URN, CRS84 and `SRID=` prefix support
+- **Auto-detection** of numeric `?lat`/`?lon` column pairs (no WKT required)
+- One **toggleable overlay per geometry column** in the layers control
+- Per-feature styling via `?wktColor`, popup labels via `?wktLabel`, tooltips via `?wktTooltip`
+- **Marker clustering** for large point sets (leaflet.markercluster)
+- Optional **heatmap** rendering (leaflet.heat)
+- **Drawing tools** that emit a ready-to-paste GeoSPARQL `sfWithin` filter
+- **Geometry simplification** via turf-simplify
+- **Export** current results to GeoJSON, KML or CSV (with synthesized WKT)
+- **Permalink** mode: map view encoded in the URL hash
+- Live **coordinate readout** and **distance-measure** tool
+- **Dark-mode-aware** default basemap
+- **Safe popups**: SPARQL bindings rendered as DOM (no XSS), with IRI linkification and inline image previews
+- Accessibility: keyboard-focusable popups, real buttons, ARIA-labeled plugin icon
+- TypeScript declarations included
+- Configurable basemaps, default view, clustering thresholds, simplification tolerance, etc. — see [docs/options.md](docs/options.md)
+
+## Additional documentation
+
+- [Plugin options reference](docs/options.md)
+- [Drawing spatial filters](docs/drawing.md)
+- [Exporting results](docs/export.md)
 
 ## Getting started
 
