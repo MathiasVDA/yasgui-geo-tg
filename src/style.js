@@ -78,11 +78,35 @@ export const addStyleControl = (map, initialState, onChange) => {
     onAdd() {
       let state = normalizeStyleState(initialState);
       const div = L.DomUtil.create('div', 'leaflet-bar yasgui-geo-style');
-      div.style.background = 'white';
-      div.style.padding = '6px';
-      div.style.display = 'grid';
-      div.style.gap = '4px';
-      div.style.fontSize = '12px';
+
+      // Toggle button (always visible)
+      const toggle = document.createElement('a');
+      toggle.href = '#';
+      toggle.title = 'Style options';
+      toggle.textContent = '🎨';
+      toggle.style.fontSize = '16px';
+      toggle.style.textAlign = 'center';
+      toggle.style.textDecoration = 'none';
+      toggle.style.lineHeight = '26px';
+      toggle.style.display = 'block';
+
+      // Collapsible panel (hidden by default)
+      const panel = document.createElement('div');
+      panel.style.display = 'none';
+      panel.style.padding = '6px';
+      panel.style.display = 'none';
+      panel.style.gap = '4px';
+      panel.style.fontSize = '12px';
+
+      let panelOpen = false;
+      toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        panelOpen = !panelOpen;
+        panel.style.display = panelOpen ? 'grid' : 'none';
+      });
+
+      const rangeInputs = {};
 
       const emit = () => onChange(normalizeStyleState(state));
       const row = (title, input) => {
@@ -103,20 +127,39 @@ export const addStyleControl = (map, initialState, onChange) => {
         input.step = String(step);
         input.value = String(state[key]);
         input.oninput = () => { state = { ...state, [key]: Number(input.value) }; emit(); };
+        rangeInputs[key] = input;
         return row(title, input);
       };
-      const color = document.createElement('input');
-      color.type = 'color';
-      color.value = state.color;
-      color.oninput = () => { state = { ...state, color: color.value }; emit(); };
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      colorInput.value = state.color;
+      colorInput.oninput = () => { state = { ...state, color: colorInput.value }; emit(); };
 
-      div.append(
-        row('Color', color),
-        range('Opacity', 'opacity', 0, 1, 0.05),
-        range('Fill', 'fillOpacity', 0, 1, 0.05),
-        range('Stroke', 'weight', 0, 12, 1),
-        range('Marker', 'radius', 1, 30, 1),
+      const resetBtn = document.createElement('button');
+      resetBtn.type = 'button';
+      resetBtn.textContent = 'Reset defaults';
+      resetBtn.style.marginTop = '4px';
+      resetBtn.style.fontSize = '11px';
+      resetBtn.style.cursor = 'pointer';
+      resetBtn.onclick = () => {
+        state = { ...DEFAULT_STYLE_STATE };
+        colorInput.value = state.color;
+        for (const [key, input] of Object.entries(rangeInputs)) {
+          input.value = String(state[key]);
+        }
+        emit();
+      };
+
+      panel.append(
+        row('Stroke color', colorInput),
+        range('Stroke opacity', 'opacity', 0, 1, 0.05),
+        range('Fill opacity', 'fillOpacity', 0, 1, 0.05),
+        range('Stroke thickness', 'weight', 0, 12, 1),
+        range('Marker size', 'radius', 1, 30, 1),
+        resetBtn,
       );
+
+      div.append(toggle, panel);
       L.DomEvent.disableClickPropagation(div);
       L.DomEvent.disableScrollPropagation(div);
       return div;
