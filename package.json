@@ -37,12 +37,21 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.7",
+    "@zazuko/yasgui": "^4.6.1",
+    "esbuild": "^0.28.0",
+    "jsdom": "^28.1.0",
     "vite": "8.0.13",
-    "@zazuko/yasgui": "^4.6.1"
+    "vitest": "^4.1.7"
   },
   "dependencies": {
+    "@turf/helpers": "^7.3.5",
+    "@turf/simplify": "^7.3.5",
     "betterknown": "^1.2.0",
     "leaflet": "^1.9.4",
+    "leaflet-draw": "^1.0.4",
+    "leaflet.heat": "^0.2.0",
+    "leaflet.markercluster": "^1.5.3",
     "proj4": "^2.20.8"
   }
 }
