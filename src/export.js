@@ -121,7 +121,7 @@ export const downloadMapPNG = async (map, filename = 'map.png', renderer = toPng
 };
 
 /**
- * Add a small export control to a Leaflet map. Calls getFeatureCollection()
+ * Add a small export dropdown control to a Leaflet map. Calls getFeatureCollection()
  * on demand to retrieve the merged feature collection at click time.
  * @param {L.Map} map
  * @param {() => GeoJSON.FeatureCollection} getFeatureCollection
@@ -131,15 +131,58 @@ export const addExportControl = (map, getFeatureCollection) => {
     options: { position: 'topright' },
     onAdd() {
       const div = L.DomUtil.create('div', 'leaflet-bar yasgui-geo-export');
-      div.style.background = 'white';
-      div.style.padding = '4px';
-      const mk = (label, handler, title = `Download as ${label}`) => {
+      div.style.position = 'relative';
+
+      const btn = document.createElement('a');
+      btn.href = '#';
+      btn.title = 'Download map data';
+      btn.textContent = '⬇';
+      btn.style.fontSize = '16px';
+      btn.style.textAlign = 'center';
+      btn.style.textDecoration = 'none';
+      btn.style.lineHeight = '26px';
+      btn.style.display = 'block';
+
+      const menu = document.createElement('div');
+      menu.style.position = 'absolute';
+      menu.style.right = '0';
+      menu.style.top = '100%';
+      menu.style.background = 'var(--yasgui-bg-primary, white)';
+      menu.style.color = 'var(--yasgui-text-primary, #333)';
+      menu.style.border = '1px solid var(--yasgui-border-color, #ccc)';
+      menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+      menu.style.display = 'none';
+      menu.style.zIndex = '1000';
+      menu.style.minWidth = '140px';
+      menu.style.fontSize = '12px';
+
+      let open = false;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        open = !open;
+        menu.style.display = open ? 'block' : 'none';
+      });
+
+      const mk = (label, handler, title) => {
         const b = document.createElement('button');
         b.textContent = label;
-        b.title = title;
-        b.style.margin = '2px';
+        if (title) b.title = title;
+        b.style.display = 'block';
+        b.style.width = '100%';
+        b.style.padding = '6px 12px';
+        b.style.background = 'none';
+        b.style.border = 'none';
+        b.style.textAlign = 'left';
+        b.style.cursor = 'pointer';
+        b.style.whiteSpace = 'nowrap';
+        b.style.color = 'inherit';
+        b.onmouseover = () => { b.style.background = 'var(--yasgui-bg-secondary, #f0f0f0)'; };
+        b.onmouseout = () => { b.style.background = 'none'; };
         b.onclick = async (e) => {
-          L.DomEvent.stopPropagation(e);
+          e.stopPropagation();
+          menu.style.display = 'none';
+          open = false;
           try {
             await handler();
           } catch (error) {
@@ -148,14 +191,26 @@ export const addExportControl = (map, getFeatureCollection) => {
         };
         return b;
       };
-      div.append(
-        mk('GeoJSON', () => triggerDownload('results.geojson', toGeoJSON(getFeatureCollection()), 'application/geo+json')),
-        mk('Copy', () => copyGeoJSONToClipboard(getFeatureCollection()), 'Copy GeoJSON to clipboard'),
-        mk('PNG', () => downloadMapPNG(map), 'Download the current map as PNG'),
-        mk('KML', () => triggerDownload('results.kml', toKML(getFeatureCollection()), 'application/vnd.google-earth.kml+xml')),
-        mk('CSV', () => triggerDownload('results.csv', toCSV(getFeatureCollection()), 'text/csv')),
+
+      menu.append(
+        mk('Copy GeoJSON', () => copyGeoJSONToClipboard(getFeatureCollection()), 'Copy GeoJSON to clipboard'),
+        mk('Save as PNG', () => downloadMapPNG(map), 'Download the current map as PNG'),
+        mk('Save as KML', () => triggerDownload('results.kml', toKML(getFeatureCollection()), 'application/vnd.google-earth.kml+xml')),
+        mk('Save as CSV', () => triggerDownload('results.csv', toCSV(getFeatureCollection()), 'text/csv')),
       );
+
+      div.append(btn, menu);
+
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!div.contains(e.target)) {
+          menu.style.display = 'none';
+          open = false;
+        }
+      });
+
       L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
       return div;
     },
   });
