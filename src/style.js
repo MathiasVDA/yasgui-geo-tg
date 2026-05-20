@@ -94,9 +94,10 @@ export const addStyleControl = (map, initialState, onChange) => {
       const panel = document.createElement('div');
       panel.style.display = 'none';
       panel.style.padding = '6px';
-      panel.style.display = 'none';
       panel.style.gap = '4px';
       panel.style.fontSize = '12px';
+      panel.style.background = '#fff';
+      panel.style.borderTop = '1px solid #ccc';
 
       let panelOpen = false;
       toggle.addEventListener('click', (e) => {

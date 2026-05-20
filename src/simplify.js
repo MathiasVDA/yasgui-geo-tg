@@ -59,6 +59,8 @@ export const addSimplifyControl = (map, initialTolerance, options, onChange) => 
       panel.style.display = 'none';
       panel.style.padding = '6px';
       panel.style.fontSize = '12px';
+      panel.style.background = '#fff';
+      panel.style.borderTop = '1px solid #ccc';
 
       let panelOpen = false;
       toggle.addEventListener('click', (e) => {
