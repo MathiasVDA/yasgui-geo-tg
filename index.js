@@ -12,7 +12,7 @@ import { parseGML } from './src/gml.js';
 import { parseGeoHash } from './src/geohash.js';
 import { enableDrawing } from './src/draw.js';
 import { addSimplifyControl, simplifyFeatureCollection } from './src/simplify.js';
-import { addExportControl } from './src/export.js';
+import { addExportControl, toGeoJSON } from './src/export.js';
 import { bindHashState } from './src/permalink.js';
 import { addCoordinateDisplay, addMeasureControl } from './src/controls.js';
 import { addStyleControl, getStyleStorageKey, loadStyleState, saveStyleState, resolveFeatureStyle } from './src/style.js';
@@ -654,6 +654,27 @@ class GeoPlugin {
     this.updateColumns();
     return this.geometryColumns && this.geometryColumns.length > 0;
   }
+
+  /**
+   * Called by YASR to provide the default download action (GeoJSON).
+   * @param {string} [filename]
+   * @returns {{ contentType: string, getData: () => string, filename: string, title: string } | undefined}
+   */
+  download(filename) {
+    const fc = {
+      type: 'FeatureCollection',
+      features: Array.from(this._featureCollections?.values() ?? [])
+        .flatMap(fc => fc.features || []),
+    };
+    return {
+      contentType: 'application/geo+json',
+      getData: () => toGeoJSON(fc),
+      filename: filename || 'results.geojson',
+      title: 'Download as GeoJSON',
+    };
+  }
 }
+
+GeoPlugin.helpReference = 'https://yasgui-doc.matdata.eu/docs/user-guide#geo-plugin';
 
 export default GeoPlugin;
