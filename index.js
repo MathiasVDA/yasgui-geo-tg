@@ -13,6 +13,7 @@ import { enableDrawing } from './src/draw.js';
 import { simplifyFeatureCollection } from './src/simplify.js';
 import { addExportControl } from './src/export.js';
 import { bindHashState } from './src/permalink.js';
+import { addCoordinateDisplay, addMeasureControl } from './src/controls.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -326,6 +327,8 @@ const DEFAULT_OPTIONS = {
   simplifyTolerance: 0,
   exportControl: true,
   permalink: false,
+  showCoordinates: true,
+  measure: true,
 };
 
 /**
@@ -421,6 +424,8 @@ class GeoPlugin {
       if (opts.permalink) {
         bindHashState(map, { basemaps, currentBasemapName: opts.defaultBasemap });
       }
+      if (opts.showCoordinates) addCoordinateDisplay(map);
+      if (opts.measure) addMeasureControl(map);
     }
     this.yasr.resultsEl.appendChild(this.container);
 
