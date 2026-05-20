@@ -3,6 +3,7 @@ import L from 'leaflet';
 import proj4 from 'proj4';
 import { wktToGeoJSON } from 'betterknown';
 import { renderPopup } from './src/popup.js';
+import { injectLatLonPointColumn } from './src/latlon.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -320,6 +321,10 @@ class GeoPlugin {
    */
   updateColumns() {
     const bindings = this.yasr?.results?.json?.results?.bindings ?? [];
+    // Synthesize a WKT POINT column from numeric lat/lon pairs (best-effort).
+    if (this.options?.latLonAutoDetect !== false) {
+      injectLatLonPointColumn(bindings);
+    }
     const seen = new Map();
     for (const row of bindings) {
       for (const colName of Object.keys(row)) {
