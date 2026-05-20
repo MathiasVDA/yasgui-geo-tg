@@ -314,19 +314,23 @@ class GeoPlugin {
 
   /**
    * Update detected geometry columns based on current YASR results.
+   * Scans all rows (not just the first) so optional geometry bindings are
+   * still detected when the first row happens to lack them.
    * @returns {void}
    */
   updateColumns() {
     const bindings = this.yasr?.results?.json?.results?.bindings ?? [];
-    const firstRow = bindings[0] ?? {};
-
-    this.geometryColumns = Object.keys(firstRow)
-      .filter(
-        (k) =>
-          firstRow[k].datatype &&
-          Object.keys(conversions).includes(firstRow[k].datatype),
-      )
-      .map((colName) => ({ colName, datatype: firstRow[colName].datatype }));
+    const seen = new Map();
+    for (const row of bindings) {
+      for (const colName of Object.keys(row)) {
+        if (seen.has(colName)) continue;
+        const datatype = row[colName]?.datatype;
+        if (datatype && Object.keys(conversions).includes(datatype)) {
+          seen.set(colName, { colName, datatype });
+        }
+      }
+    }
+    this.geometryColumns = Array.from(seen.values());
   }
 
   /**
