@@ -12,6 +12,7 @@ import { parseGML } from './src/gml.js';
 import { enableDrawing } from './src/draw.js';
 import { simplifyFeatureCollection } from './src/simplify.js';
 import { addExportControl } from './src/export.js';
+import { bindHashState } from './src/permalink.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -324,6 +325,7 @@ const DEFAULT_OPTIONS = {
   drawing: false,
   simplifyTolerance: 0,
   exportControl: true,
+  permalink: false,
 };
 
 /**
@@ -415,6 +417,9 @@ class GeoPlugin {
           features: Array.from(this._featureCollections.values())
             .flatMap(fc => fc.features || []),
         }));
+      }
+      if (opts.permalink) {
+        bindHashState(map, { basemaps, currentBasemapName: opts.defaultBasemap });
       }
     }
     this.yasr.resultsEl.appendChild(this.container);
