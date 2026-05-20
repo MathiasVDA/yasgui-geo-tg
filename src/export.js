@@ -34,6 +34,13 @@ const flattenProps = (p) => {
 
 export const toGeoJSON = (fc) => JSON.stringify(fc, null, 2);
 
+export const copyGeoJSONToClipboard = async (fc, clipboard = navigator?.clipboard) => {
+  if (!clipboard?.writeText) {
+    throw new Error('Clipboard API is not available.');
+  }
+  await clipboard.writeText(toGeoJSON(fc));
+};
+
 export const toKML = (fc) => {
   const placemarks = (fc.features || []).map((f) => {
     const props = flattenProps(f.properties);
@@ -103,16 +110,24 @@ export const addExportControl = (map, getFeatureCollection) => {
       const div = L.DomUtil.create('div', 'leaflet-bar yasgui-geo-export');
       div.style.background = 'white';
       div.style.padding = '4px';
-      const mk = (label, handler) => {
+      const mk = (label, handler, title = `Download as ${label}`) => {
         const b = document.createElement('button');
         b.textContent = label;
-        b.title = `Download as ${label}`;
+        b.title = title;
         b.style.margin = '2px';
-        b.onclick = (e) => { L.DomEvent.stopPropagation(e); handler(); };
+        b.onclick = async (e) => {
+          L.DomEvent.stopPropagation(e);
+          try {
+            await handler();
+          } catch (error) {
+            console.warn('Geo export action failed:', error);
+          }
+        };
         return b;
       };
       div.append(
         mk('GeoJSON', () => triggerDownload('results.geojson', toGeoJSON(getFeatureCollection()), 'application/geo+json')),
+        mk('Copy', () => copyGeoJSONToClipboard(getFeatureCollection()), 'Copy GeoJSON to clipboard'),
         mk('KML', () => triggerDownload('results.kml', toKML(getFeatureCollection()), 'application/vnd.google-earth.kml+xml')),
         mk('CSV', () => triggerDownload('results.csv', toCSV(getFeatureCollection()), 'text/csv')),
       );

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toGeoJSON, toKML, toCSV } from '../src/export.js';
+import { toGeoJSON, toKML, toCSV, copyGeoJSONToClipboard } from '../src/export.js';
 
 const fc = {
   type: 'FeatureCollection',
@@ -51,5 +51,11 @@ describe('export helpers', () => {
     };
     const csv = toCSV(tricky);
     expect(csv).toContain('"a,b ""c"""');
+  });
+
+  it('copies formatted GeoJSON to clipboard', async () => {
+    let written = '';
+    await copyGeoJSONToClipboard(fc, { writeText: async (value) => { written = value; } });
+    expect(JSON.parse(written)).toEqual(fc);
   });
 });

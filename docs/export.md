@@ -7,6 +7,7 @@ features to a downloaded file in one of three formats.
 | Format  | Filename          | Notes                                                                 |
 |---------|-------------------|-----------------------------------------------------------------------|
 | GeoJSON | `results.geojson` | Verbatim copy of the in-memory feature collection.                    |
+| Copy    | clipboard         | Copies formatted GeoJSON to the clipboard for paste into issues, notebooks or editors. |
 | KML     | `results.kml`     | Supports `Point`, `LineString`, `Polygon` (incl. holes). Uses `wktLabel` or `name` as placemark name. |
 | CSV     | `results.csv`     | One row per feature, one column per binding variable + a synthesized `wkt` column. |
 
