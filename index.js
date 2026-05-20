@@ -563,6 +563,9 @@ class GeoPlugin {
   getIcon() {
     const icon = document.createElement('div');
     icon.innerHTML = '🌍';
+    icon.setAttribute('role', 'img');
+    icon.setAttribute('aria-label', 'Geo map view');
+    icon.title = 'Geo map view';
     return icon;
   }
 

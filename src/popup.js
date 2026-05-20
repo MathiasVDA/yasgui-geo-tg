@@ -32,9 +32,15 @@ const createValueNode = (binding, doc) => {
   if (value.length > MAX_VALUE_CHARS) {
     const short = doc.createElement('span');
     short.textContent = value.slice(0, MAX_VALUE_CHARS) + '… ';
-    const more = doc.createElement('a');
-    more.href = '#';
+    const more = doc.createElement('button');
+    more.type = 'button';
     more.textContent = '(show more)';
+    more.setAttribute('aria-label', 'Show full value');
+    more.style.background = 'none';
+    more.style.border = 'none';
+    more.style.color = '#06c';
+    more.style.cursor = 'pointer';
+    more.style.padding = '0';
     more.addEventListener('click', (ev) => {
       ev.preventDefault();
       span.textContent = value;
@@ -60,6 +66,9 @@ export const renderPopup = (properties, opts = {}) => {
   const skip = new Set(opts.skip || []);
   const table = doc.createElement('table');
   table.className = 'yasgui-geo-popup';
+  table.setAttribute('role', 'presentation');
+  table.tabIndex = 0;
+  table.setAttribute('aria-label', 'Feature properties');
   table.style.borderCollapse = 'collapse';
   table.style.fontSize = '12px';
   for (const key of Object.keys(properties)) {
