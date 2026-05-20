@@ -452,7 +452,20 @@ class GeoPlugin {
         }));
       }
       if (opts.permalink) {
-        bindHashState(map, { basemaps, currentBasemapName: opts.defaultBasemap });
+        this.hashState = bindHashState(map, {
+          basemaps,
+          currentBasemapName: opts.defaultBasemap,
+          getVisibleLayers: () => Array.from(this.columnLayers.entries())
+            .filter(([, layer]) => this.map.hasLayer(layer))
+            .map(([name]) => name),
+          setVisibleLayers: (visibleNames) => {
+            const visible = new Set(visibleNames);
+            for (const [name, layer] of this.columnLayers.entries()) {
+              if (visible.has(name) && !this.map.hasLayer(layer)) layer.addTo(this.map);
+              if (!visible.has(name) && this.map.hasLayer(layer)) this.map.removeLayer(layer);
+            }
+          },
+        });
       }
       if (opts.showCoordinates) addCoordinateDisplay(map);
       if (opts.measure) addMeasureControl(map);
@@ -611,6 +624,8 @@ class GeoPlugin {
       const b = lg.getBounds();
       if (b.isValid()) allBounds.extend(b);
     }
+
+    this.hashState?.applyLayerVisibility?.();
 
     setTimeout(() => {
       this.map.invalidateSize();

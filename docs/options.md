@@ -45,6 +45,7 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 | `timeSlider` | `boolean` | `true` | Show a temporal slider when result rows contain time/date-like bindings. |
 | `timeBindingNames` | `string[] \| null` | common names | Override temporal binding names (`time`, `date`, `datetime`, `timestamp`, `start`, `startDate`). |
 | `timeMode` | `'cumulative' \| 'instant'` | `'cumulative'` | Show all features up to the selected time, or only features at the exact selected time. |
+| `permalink` | `boolean` | `false` | Persist center, zoom, basemap and visible geometry columns in the URL hash. |
 
 ## Styling
 
