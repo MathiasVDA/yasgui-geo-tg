@@ -170,19 +170,29 @@ const conversions = {
  */
 const createGeojson = async (bindings, column) => ({
   type: 'FeatureCollection',
-  features: await Promise.all(
+  features: (await Promise.all(
     bindings.map(async (item) => {
       const converter = conversions[item[column].datatype];
-      const geometry = converter
-        ? await converter(item[column].value)
-        : null ;
-      return {
-        type: 'Feature',
-        properties: item,
-        geometry,
-      };
+      if (!converter) {
+        return {
+          type: 'Feature',
+          properties: item,
+          geometry: null,
+        };
+      }
+      try {
+        const geometry = await converter(item[column].value);
+        return {
+          type: 'Feature',
+          properties: item,
+          geometry,
+        };
+      } catch (error) {
+        console.warn(`Failed to parse geometry for column "${column}":`, item[column].value, error);
+        return null; // Skip this feature
+      }
     }),
-  ),
+  )).filter(feature => feature !== null),
 });
 
 /**
