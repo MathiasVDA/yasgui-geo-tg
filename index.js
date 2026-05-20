@@ -10,6 +10,7 @@ import { renderPopup } from './src/popup.js';
 import { injectLatLonPointColumn } from './src/latlon.js';
 import { parseGML } from './src/gml.js';
 import { enableDrawing } from './src/draw.js';
+import { simplifyFeatureCollection } from './src/simplify.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -320,6 +321,7 @@ const DEFAULT_OPTIONS = {
   heatmapRadius: 25,
   heatmapBlur: 15,
   drawing: false,
+  simplifyTolerance: 0,
 };
 
 /**
@@ -423,13 +425,16 @@ class GeoPlugin {
         this.yasr.results.json.results.bindings,
         colName,
       );
+      const simplified = opts.simplifyTolerance > 0
+        ? simplifyFeatureCollection(geojson, opts.simplifyTolerance)
+        : geojson;
       const layerColor = palette[idx % palette.length];
       const DEFAULT_COLOR = opts.defaultColor === DEFAULT_OPTIONS.defaultColor
         ? layerColor
         : opts.defaultColor;
 
       const lg = L.featureGroup();
-      const newLayers = L.geoJson(geojson, {
+      const newLayers = L.geoJson(simplified, {
         pointToLayer: (feature, latlng) => {
           const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;
           return L.circleMarker(latlng, {
@@ -462,13 +467,13 @@ class GeoPlugin {
         },
       });
 
-      const pointCount = (geojson.features || []).filter(
+      const pointCount = (simplified.features || []).filter(
         f => f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint',
       ).length;
 
       if (opts.heatmap && pointCount > 0 && typeof L.heatLayer === 'function') {
         const heatPoints = [];
-        for (const f of geojson.features) {
+        for (const f of simplified.features) {
           if (f.geometry?.type === 'Point') {
             const [lon, lat] = f.geometry.coordinates;
             heatPoints.push([lat, lon, 1]);
@@ -483,8 +488,8 @@ class GeoPlugin {
         lg.addLayer(heat);
         // Still add non-point features as vector overlays
         const vectorOnly = {
-          ...geojson,
-          features: geojson.features.filter(f =>
+          ...simplified,
+          features: simplified.features.filter(f =>
             f.geometry?.type !== 'Point' && f.geometry?.type !== 'MultiPoint'),
         };
         if (vectorOnly.features.length) lg.addLayer(L.geoJson(vectorOnly, newLayers.options));
