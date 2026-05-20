@@ -3,6 +3,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import L from 'leaflet';
 import 'leaflet.markercluster';
+import 'leaflet.heat';
 import proj4 from 'proj4';
 import { wktToGeoJSON } from 'betterknown';
 import { renderPopup } from './src/popup.js';
@@ -314,6 +315,9 @@ const DEFAULT_OPTIONS = {
   clustering: true,
   clusterMinPoints: 50,
   maxClusterRadius: 60,
+  heatmap: false,
+  heatmapRadius: 25,
+  heatmapBlur: 15,
 };
 
 /**
@@ -456,15 +460,40 @@ class GeoPlugin {
       const pointCount = (geojson.features || []).filter(
         f => f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint',
       ).length;
-      const useCluster = opts.clustering
-        && pointCount >= opts.clusterMinPoints
-        && typeof L.markerClusterGroup === 'function';
-      if (useCluster) {
-        const cluster = L.markerClusterGroup({ maxClusterRadius: opts.maxClusterRadius });
-        cluster.addLayer(newLayers);
-        lg.addLayer(cluster);
+
+      if (opts.heatmap && pointCount > 0 && typeof L.heatLayer === 'function') {
+        const heatPoints = [];
+        for (const f of geojson.features) {
+          if (f.geometry?.type === 'Point') {
+            const [lon, lat] = f.geometry.coordinates;
+            heatPoints.push([lat, lon, 1]);
+          } else if (f.geometry?.type === 'MultiPoint') {
+            for (const [lon, lat] of f.geometry.coordinates) heatPoints.push([lat, lon, 1]);
+          }
+        }
+        const heat = L.heatLayer(heatPoints, {
+          radius: opts.heatmapRadius,
+          blur: opts.heatmapBlur,
+        });
+        lg.addLayer(heat);
+        // Still add non-point features as vector overlays
+        const vectorOnly = {
+          ...geojson,
+          features: geojson.features.filter(f =>
+            f.geometry?.type !== 'Point' && f.geometry?.type !== 'MultiPoint'),
+        };
+        if (vectorOnly.features.length) lg.addLayer(L.geoJson(vectorOnly, newLayers.options));
       } else {
-        lg.addLayer(newLayers);
+        const useCluster = opts.clustering
+          && pointCount >= opts.clusterMinPoints
+          && typeof L.markerClusterGroup === 'function';
+        if (useCluster) {
+          const cluster = L.markerClusterGroup({ maxClusterRadius: opts.maxClusterRadius });
+          cluster.addLayer(newLayers);
+          lg.addLayer(cluster);
+        } else {
+          lg.addLayer(newLayers);
+        }
       }
       lg.addTo(this.map);
       this.layerControl.addOverlay(lg, `?${colName}`);
