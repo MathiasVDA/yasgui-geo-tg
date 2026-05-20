@@ -66,6 +66,7 @@
     "@turf/helpers": "^7.3.5",
     "@turf/simplify": "^7.3.5",
     "betterknown": "^1.2.0",
+    "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "leaflet.heat": "^0.2.0",

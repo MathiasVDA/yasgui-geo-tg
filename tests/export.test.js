@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toGeoJSON, toKML, toCSV, copyGeoJSONToClipboard } from '../src/export.js';
+import { toGeoJSON, toKML, toCSV, copyGeoJSONToClipboard, downloadMapPNG } from '../src/export.js';
 
 const fc = {
   type: 'FeatureCollection',
@@ -57,5 +57,28 @@ describe('export helpers', () => {
     let written = '';
     await copyGeoJSONToClipboard(fc, { writeText: async (value) => { written = value; } });
     expect(JSON.parse(written)).toEqual(fc);
+  });
+
+  it('exports the map container as PNG via a renderer', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const clicked = [];
+    const originalClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function click() { clicked.push(this.download); };
+    try {
+      const url = await downloadMapPNG(
+        { getContainer: () => container },
+        'map.png',
+        async (node) => {
+          expect(node).toBe(container);
+          return 'data:image/png;base64,abc';
+        },
+      );
+      expect(url).toBe('data:image/png;base64,abc');
+      expect(clicked).toEqual(['map.png']);
+    } finally {
+      HTMLAnchorElement.prototype.click = originalClick;
+      container.remove();
+    }
   });
 });

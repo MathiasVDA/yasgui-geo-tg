@@ -1,5 +1,7 @@
 // Result-export helpers: GeoJSON, KML, CSV-with-WKT.
 
+import { toPng } from 'html-to-image';
+
 const escapeXml = (s) => String(s).replace(/[<>&'"]/g, c => ({
   '<': '&lt;', '>': '&gt;', '&': '&amp;', '\'': '&apos;', '"': '&quot;',
 }[c]));
@@ -97,6 +99,27 @@ const triggerDownload = (filename, content, mime) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
+const triggerDownloadUrl = (filename, url) => {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+
+export const downloadMapPNG = async (map, filename = 'map.png', renderer = toPng) => {
+  const container = map?.getContainer?.();
+  if (!container) throw new Error('Map container is not available.');
+  const dataUrl = await renderer(container, {
+    cacheBust: true,
+    pixelRatio: 2,
+    filter: node => !node.classList?.contains?.('leaflet-control-container'),
+  });
+  triggerDownloadUrl(filename, dataUrl);
+  return dataUrl;
+};
+
 /**
  * Add a small export control to a Leaflet map. Calls getFeatureCollection()
  * on demand to retrieve the merged feature collection at click time.
@@ -128,6 +151,7 @@ export const addExportControl = (map, getFeatureCollection) => {
       div.append(
         mk('GeoJSON', () => triggerDownload('results.geojson', toGeoJSON(getFeatureCollection()), 'application/geo+json')),
         mk('Copy', () => copyGeoJSONToClipboard(getFeatureCollection()), 'Copy GeoJSON to clipboard'),
+        mk('PNG', () => downloadMapPNG(map), 'Download the current map as PNG'),
         mk('KML', () => triggerDownload('results.kml', toKML(getFeatureCollection()), 'application/vnd.google-earth.kml+xml')),
         mk('CSV', () => triggerDownload('results.csv', toCSV(getFeatureCollection()), 'text/csv')),
       );
