@@ -43,6 +43,7 @@ const createValueNode = (binding, doc) => {
     more.style.padding = '0';
     more.addEventListener('click', (ev) => {
       ev.preventDefault();
+      ev.stopPropagation();
       span.textContent = value;
     });
     span.appendChild(short);
