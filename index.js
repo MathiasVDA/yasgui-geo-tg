@@ -1,5 +1,8 @@
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import L from 'leaflet';
+import 'leaflet.markercluster';
 import proj4 from 'proj4';
 import { wktToGeoJSON } from 'betterknown';
 import { renderPopup } from './src/popup.js';
@@ -308,6 +311,9 @@ const DEFAULT_OPTIONS = {
   maxZoom: 14,
   minHeight: 500,
   basemaps: null, // null = use built-in `basemaps`
+  clustering: true,
+  clusterMinPoints: 50,
+  maxClusterRadius: 60,
 };
 
 /**
@@ -446,7 +452,20 @@ class GeoPlugin {
           };
         },
       });
-      lg.addLayer(newLayers);
+
+      const pointCount = (geojson.features || []).filter(
+        f => f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint',
+      ).length;
+      const useCluster = opts.clustering
+        && pointCount >= opts.clusterMinPoints
+        && typeof L.markerClusterGroup === 'function';
+      if (useCluster) {
+        const cluster = L.markerClusterGroup({ maxClusterRadius: opts.maxClusterRadius });
+        cluster.addLayer(newLayers);
+        lg.addLayer(cluster);
+      } else {
+        lg.addLayer(newLayers);
+      }
       lg.addTo(this.map);
       this.layerControl.addOverlay(lg, `?${colName}`);
       this.columnLayers.set(colName, lg);
