@@ -42,11 +42,31 @@ export const addSimplifyControl = (map, initialTolerance, options, onChange) => 
     options: { position: 'topleft' },
     onAdd() {
       const div = L.DomUtil.create('div', 'leaflet-bar yasgui-geo-simplify');
-      div.style.background = 'white';
-      div.style.padding = '6px';
-      div.style.display = 'grid';
-      div.style.gap = '4px';
-      div.style.fontSize = '12px';
+
+      // Toggle button (always visible)
+      const toggle = document.createElement('a');
+      toggle.href = '#';
+      toggle.title = 'Simplification tolerance';
+      toggle.textContent = '〰';
+      toggle.style.fontSize = '16px';
+      toggle.style.textAlign = 'center';
+      toggle.style.textDecoration = 'none';
+      toggle.style.lineHeight = '26px';
+      toggle.style.display = 'block';
+
+      // Collapsible panel (hidden by default)
+      const panel = document.createElement('div');
+      panel.style.display = 'none';
+      panel.style.padding = '6px';
+      panel.style.fontSize = '12px';
+
+      let panelOpen = false;
+      toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        panelOpen = !panelOpen;
+        panel.style.display = panelOpen ? 'block' : 'none';
+      });
 
       const label = document.createElement('label');
       label.title = 'Simplification tolerance';
@@ -66,7 +86,8 @@ export const addSimplifyControl = (map, initialTolerance, options, onChange) => 
       };
       updateText();
       label.append(text, input);
-      div.append(label);
+      panel.append(label);
+      div.append(toggle, panel);
       L.DomEvent.disableClickPropagation(div);
       L.DomEvent.disableScrollPropagation(div);
       return div;
