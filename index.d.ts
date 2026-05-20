@@ -53,6 +53,10 @@ export interface GeoPluginOptions {
   showCoordinates?: boolean;
   /** Show distance-measure tool. Default `true`. */
   measure?: boolean;
+  /** Show persisted style controls for default color/opacity/weight/radius. Default `true`. */
+  styleControl?: boolean;
+  /** Override the localStorage key used for persisted style controls. */
+  styleStorageKey?: string | null;
   /** Use dark basemap when OS prefers dark color scheme. Default `'auto'`. */
   darkMode?: DarkModeOption;
 }

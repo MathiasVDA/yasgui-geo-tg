@@ -36,6 +36,14 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 | `minHeight` | `number` (px) | `500` | Minimum height of the map container. |
 | `latLonAutoDetect` | `boolean` | `true` | Auto-detect numeric lat/lon column pairs and synthesize a WKT POINT column. |
 | `basemaps` | `{ [name]: L.TileLayer }` | built-in | Replace the bundled basemap dictionary. |
+| `styleControl` | `boolean` | `true` | Show the compact style control for default color, opacity, fill, stroke width and marker radius. |
+| `styleStorageKey` | `string \| null` | query hash | Override the localStorage key used to persist style-control values. |
+
+## Styling
+
+The style control persists default visual settings in `localStorage`, keyed by
+the current endpoint/query when YASQE is available. A per-row `?wktColor`
+binding still overrides the selected default color for that feature.
 
 ## Convention-based per-feature controls
 

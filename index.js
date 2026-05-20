@@ -15,6 +15,7 @@ import { simplifyFeatureCollection } from './src/simplify.js';
 import { addExportControl } from './src/export.js';
 import { bindHashState } from './src/permalink.js';
 import { addCoordinateDisplay, addMeasureControl } from './src/controls.js';
+import { addStyleControl, getStyleStorageKey, loadStyleState, saveStyleState, resolveFeatureStyle } from './src/style.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -340,6 +341,8 @@ const DEFAULT_OPTIONS = {
   permalink: false,
   showCoordinates: true,
   measure: true,
+  styleControl: true,
+  styleStorageKey: null,
   darkMode: 'auto', // 'auto' | true | false
 };
 
@@ -364,6 +367,8 @@ class GeoPlugin {
       ...(yasr?.config?.plugins?.geo?.dynamicConfig || {}),
       ...(yasr?.config?.plugins?.geo || {}),
     };
+    this.styleStorageKey = getStyleStorageKey(yasr, this.options);
+    this.styleState = loadStyleState(this.styleStorageKey);
     this.updateColumns();
   }
 
@@ -443,6 +448,12 @@ class GeoPlugin {
       }
       if (opts.showCoordinates) addCoordinateDisplay(map);
       if (opts.measure) addMeasureControl(map);
+      if (opts.styleControl) {
+        addStyleControl(map, this.styleState, (nextStyle) => {
+          this.styleState = saveStyleState(this.styleStorageKey, nextStyle);
+          this.updateMap();
+        });
+      }
     }
     this.yasr.resultsEl.appendChild(this.container);
 
@@ -475,14 +486,14 @@ class GeoPlugin {
       const lg = L.featureGroup();
       const newLayers = L.geoJson(simplified, {
         pointToLayer: (feature, latlng) => {
-          const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;
+          const style = resolveFeatureStyle(feature, this.styleState, DEFAULT_COLOR);
           return L.circleMarker(latlng, {
-            radius: 4,
-            weight: 2,
-            color: color,
-            fillColor: color,
-            opacity: 0.7,
-            fillOpacity: 0.5,
+            radius: style.radius,
+            weight: style.weight,
+            color: style.color,
+            fillColor: style.fillColor,
+            opacity: style.opacity,
+            fillOpacity: style.fillOpacity,
           });
         },
         onEachFeature: (feature, layer) => {
@@ -499,9 +510,13 @@ class GeoPlugin {
           }
         },
         style: (feature) => {
-          const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;
+          const style = resolveFeatureStyle(feature, this.styleState, DEFAULT_COLOR);
           return {
-            color, fillColor: color, weight: 2, opacity: 0.7, fillOpacity: 0.5,
+            color: style.color,
+            fillColor: style.fillColor,
+            weight: style.weight,
+            opacity: style.opacity,
+            fillOpacity: style.fillOpacity,
           };
         },
       });

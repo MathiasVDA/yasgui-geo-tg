@@ -14,7 +14,7 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 - OGC URN, CRS84 and `SRID=` prefix support
 - **Auto-detection** of numeric `?lat`/`?lon` column pairs (no WKT required)
 - One **toggleable overlay per geometry column** in the layers control
-- Per-feature styling via `?wktColor`, popup labels via `?wktLabel`, tooltips via `?wktTooltip`
+- Persisted style control for default color, opacity, fill, stroke width and marker radius; per-feature `?wktColor` still overrides color
 - **Marker clustering** for large point sets (leaflet.markercluster)
 - Optional **heatmap** rendering (leaflet.heat)
 - **Drawing tools** that emit a ready-to-paste GeoSPARQL `sfWithin` filter
