@@ -21,6 +21,7 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 - **Geometry simplification** via turf-simplify with a live tolerance slider
 - **Export** current results to GeoJSON, KML or CSV (with synthesized WKT), or copy GeoJSON to the clipboard
 - **Permalink** mode: map view encoded in the URL hash
+- **Time slider** for result sets with `?time` / `?date` bindings, including play/pause animation
 - Live **coordinate readout** and **distance-measure** tool
 - **Dark-mode-aware** default basemap
 - **Safe popups**: SPARQL bindings rendered as DOM (no XSS), with IRI linkification and inline image previews

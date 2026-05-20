@@ -16,6 +16,7 @@ import { addExportControl } from './src/export.js';
 import { bindHashState } from './src/permalink.js';
 import { addCoordinateDisplay, addMeasureControl } from './src/controls.js';
 import { addStyleControl, getStyleStorageKey, loadStyleState, saveStyleState, resolveFeatureStyle } from './src/style.js';
+import { addTimeSliderControl, collectTimeValues, filterFeatureCollectionByTime } from './src/time.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -346,6 +347,9 @@ const DEFAULT_OPTIONS = {
   measure: true,
   styleControl: true,
   styleStorageKey: null,
+  timeSlider: true,
+  timeBindingNames: null,
+  timeMode: 'cumulative', // 'cumulative' | 'instant'
   darkMode: 'auto', // 'auto' | true | false
 };
 
@@ -372,6 +376,7 @@ class GeoPlugin {
     };
     this.styleStorageKey = getStyleStorageKey(yasr, this.options);
     this.styleState = loadStyleState(this.styleStorageKey);
+    this.timeSelection = null;
     this.updateColumns();
   }
 
@@ -476,9 +481,14 @@ class GeoPlugin {
     }
     this.columnLayers.clear();
     this._featureCollections.clear();
+    if (this.timeControl) {
+      this.map.removeControl(this.timeControl);
+      this.timeControl = null;
+    }
 
     const palette = ['#3388ff', '#e6550d', '#31a354', '#756bb1', '#d62728', '#17becf'];
     const allBounds = L.latLngBounds([]);
+    const prepared = [];
 
     for (const [idx, geometryColumn] of this.geometryColumns.entries()) {
       const colName = geometryColumn.colName;
@@ -489,14 +499,38 @@ class GeoPlugin {
       const simplified = opts.simplifyTolerance > 0
         ? simplifyFeatureCollection(geojson, opts.simplifyTolerance)
         : geojson;
-      this._featureCollections.set(colName, simplified);
+      prepared.push({ idx, colName, featureCollection: simplified });
+    }
+
+    const allTimeValues = collectTimeValues(
+      prepared.flatMap(item => item.featureCollection.features || []),
+      opts.timeBindingNames || undefined,
+    );
+    if (opts.timeSlider && allTimeValues.length > 0) {
+      if (this.timeSelection == null || !allTimeValues.includes(this.timeSelection)) {
+        this.timeSelection = allTimeValues[allTimeValues.length - 1];
+      }
+      this.timeControl = addTimeSliderControl(this.map, allTimeValues, this.timeSelection, (selectedTime) => {
+        this.timeSelection = selectedTime;
+        this.updateMap();
+      });
+    }
+
+    for (const { idx, colName, featureCollection } of prepared) {
+      const visibleCollection = opts.timeSlider && this.timeSelection != null
+        ? filterFeatureCollectionByTime(featureCollection, this.timeSelection, {
+          bindingNames: opts.timeBindingNames || undefined,
+          mode: opts.timeMode,
+        })
+        : featureCollection;
+      this._featureCollections.set(colName, visibleCollection);
       const layerColor = palette[idx % palette.length];
       const DEFAULT_COLOR = opts.defaultColor === DEFAULT_OPTIONS.defaultColor
         ? layerColor
         : opts.defaultColor;
 
       const lg = L.featureGroup();
-      const newLayers = L.geoJson(simplified, {
+      const newLayers = L.geoJson(visibleCollection, {
         pointToLayer: (feature, latlng) => {
           const style = resolveFeatureStyle(feature, this.styleState, DEFAULT_COLOR);
           return L.circleMarker(latlng, {
@@ -533,13 +567,13 @@ class GeoPlugin {
         },
       });
 
-      const pointCount = (simplified.features || []).filter(
+      const pointCount = (visibleCollection.features || []).filter(
         f => f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint',
       ).length;
 
       if (opts.heatmap && pointCount > 0 && typeof L.heatLayer === 'function') {
         const heatPoints = [];
-        for (const f of simplified.features) {
+        for (const f of visibleCollection.features) {
           if (f.geometry?.type === 'Point') {
             const [lon, lat] = f.geometry.coordinates;
             heatPoints.push([lat, lon, 1]);
@@ -554,8 +588,8 @@ class GeoPlugin {
         lg.addLayer(heat);
         // Still add non-point features as vector overlays
         const vectorOnly = {
-          ...simplified,
-          features: simplified.features.filter(f =>
+          ...visibleCollection,
+          features: visibleCollection.features.filter(f =>
             f.geometry?.type !== 'Point' && f.geometry?.type !== 'MultiPoint'),
         };
         if (vectorOnly.features.length) lg.addLayer(L.geoJson(vectorOnly, newLayers.options));

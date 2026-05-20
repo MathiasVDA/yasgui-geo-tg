@@ -42,6 +42,9 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 | `simplifyControl` | `boolean` | `true` | Show a live simplification tolerance slider. |
 | `simplifyMaxTolerance` | `number` | `0.05` | Maximum tolerance exposed by the slider. |
 | `simplifyStep` | `number` | `0.0001` | Slider step size. |
+| `timeSlider` | `boolean` | `true` | Show a temporal slider when result rows contain time/date-like bindings. |
+| `timeBindingNames` | `string[] \| null` | common names | Override temporal binding names (`time`, `date`, `datetime`, `timestamp`, `start`, `startDate`). |
+| `timeMode` | `'cumulative' \| 'instant'` | `'cumulative'` | Show all features up to the selected time, or only features at the exact selected time. |
 
 ## Styling
 
@@ -53,6 +56,13 @@ binding still overrides the selected default color for that feature.
 
 The simplification slider adjusts turf-simplify tolerance for line and polygon
 features. Points are never simplified. A value of `0` disables simplification.
+
+## Time Slider
+
+When result rows contain a `?time`, `?date`, `?datetime`, `?timestamp`,
+`?start`, or `?startDate` binding, the plugin displays a time slider. The
+default cumulative mode shows all dated features up to the selected value;
+undated features remain visible.
 
 ## Convention-based per-feature controls
 

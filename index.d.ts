@@ -13,6 +13,7 @@ export interface InitialView {
 }
 
 export type DarkModeOption = 'auto' | boolean;
+export type TimeModeOption = 'cumulative' | 'instant';
 
 export interface GeoPluginOptions {
   /** Auto-detect numeric `?lat`/`?lon` column pairs and synthesize a point column. Default `true`. */
@@ -63,6 +64,12 @@ export interface GeoPluginOptions {
   styleControl?: boolean;
   /** Override the localStorage key used for persisted style controls. */
   styleStorageKey?: string | null;
+  /** Show a time slider when common date/time bindings are present. Default `true`. */
+  timeSlider?: boolean;
+  /** Binding names considered temporal by the time slider. */
+  timeBindingNames?: string[] | null;
+  /** Whether the time slider shows only one instant or all features up to that time. Default `'cumulative'`. */
+  timeMode?: TimeModeOption;
   /** Use dark basemap when OS prefers dark color scheme. Default `'auto'`. */
   darkMode?: DarkModeOption;
 }
