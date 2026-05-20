@@ -9,7 +9,7 @@ This package extends the YASGUI (Yet Another SPARQL GUI) interface with geograph
 
 ## Features
 
-- WKT, GeoJSON, **and GML** geometry rendering on a Leaflet map
+- WKT, GeoJSON, GML, GeoHash and DBpedia/WGS84 geometry rendering on a Leaflet map
 - On-the-fly reprojection using proj4 — 15+ embedded SRIDs plus automatic fetch from epsg.io for unknown ones
 - OGC URN, CRS84 and `SRID=` prefix support
 - **Auto-detection** of numeric `?lat`/`?lon` column pairs (no WKT required)

@@ -9,6 +9,7 @@ import { wktToGeoJSON } from 'betterknown';
 import { renderPopup } from './src/popup.js';
 import { injectLatLonPointColumn } from './src/latlon.js';
 import { parseGML } from './src/gml.js';
+import { parseGeoHash } from './src/geohash.js';
 import { enableDrawing } from './src/draw.js';
 import { simplifyFeatureCollection } from './src/simplify.js';
 import { addExportControl } from './src/export.js';
@@ -275,8 +276,10 @@ const parseWKT = async (wkt) => {
 const conversions = {
   'http://www.opengis.net/ont/geosparql#wktLiteral': parseWKT,
   'http://www.openlinksw.com/schemas/virtrdf#Geometry': parseWKT,
+  'http://www.w3.org/2003/01/geo/wgs84_pos#geometry': parseWKT,
   'http://www.opengis.net/ont/geosparql#geoJSONLiteral': JSON.parse,
   'http://www.opengis.net/ont/geosparql#gmlLiteral': parseGML,
+  'http://www.opengis.net/ont/geosparql#geoHashLiteral': parseGeoHash,
 };
 
 /**

@@ -46,3 +46,14 @@ Bindings the plugin recognizes when present in result rows:
 | `?wktColor` | Override fill/stroke color for that feature. |
 | `?wktLabel` | Plain-text popup content (replaces the default key/value table). |
 | `?wktTooltip` | Hover tooltip text. |
+
+## Supported geometry literal datatypes
+
+| Datatype | Parsed as |
+|---|---|
+| `http://www.opengis.net/ont/geosparql#wktLiteral` | WKT / CRS-prefixed WKT |
+| `http://www.openlinksw.com/schemas/virtrdf#Geometry` | WKT |
+| `http://www.w3.org/2003/01/geo/wgs84_pos#geometry` | WKT (common DBpedia style) |
+| `http://www.opengis.net/ont/geosparql#geoJSONLiteral` | GeoJSON geometry |
+| `http://www.opengis.net/ont/geosparql#gmlLiteral` | GML geometry |
+| `http://www.opengis.net/ont/geosparql#geoHashLiteral` | GeoHash center point |
