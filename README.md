@@ -121,7 +121,7 @@ Then run the local dev server (uses `vite`):
 npm run dev
 ```
 
-Then go to `http://localhost:5173/demo/index.html` to see the demo. This environment will be updated while you make changes to the code. You can also add this configuration in VS Code (in .vscode/launch.json) to launch the demo directly from the debugger:
+Then go to `http://localhost:5173/index.html` to see the demo. This environment will be updated while you make changes to the code. You can also add this configuration in VS Code (in .vscode/launch.json) to launch the demo directly from the debugger:
 
 ```json
 {
@@ -131,7 +131,7 @@ Then go to `http://localhost:5173/demo/index.html` to see the demo. This environ
           "type": "msedge",
           "request": "launch",
           "name": "Launch Demo",
-          "url": "http://localhost:5173/demo/index.html",
+          "url": "http://localhost:5173/index.html",
           "webRoot": "${workspaceFolder}"
       }
   ]
