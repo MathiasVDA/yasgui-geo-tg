@@ -28,6 +28,9 @@ export const addMeasureControl = (map) => {
   let points = [];
   let line, marker;
 
+  // Returns a theme-aware color for the measure line and markers.
+  const measureColor = () => (document.documentElement.getAttribute('data-theme') === 'dark' ? '#aad4ff' : '#0066cc');
+
   const totalKm = () => {
     let km = 0;
     for (let i = 1; i < points.length; i += 1) km += points[i - 1].distanceTo(points[i]) / 1000;
@@ -43,16 +46,17 @@ export const addMeasureControl = (map) => {
 
   const onClick = (e) => {
     if (!active) return;
+    const color = measureColor();
     points.push(e.latlng);
-    L.circleMarker(e.latlng, { radius: 3, color: '#000' }).addTo(layer);
+    L.circleMarker(e.latlng, { radius: 3, color }).addTo(layer);
     if (points.length >= 2) {
       if (line) layer.removeLayer(line);
-      line = L.polyline(points, { color: '#000', weight: 2, dashArray: '4,4' }).addTo(layer);
+      line = L.polyline(points, { color, weight: 2, dashArray: '4,4' }).addTo(layer);
       if (marker) layer.removeLayer(marker);
       marker = L.marker(points[points.length - 1], {
         icon: L.divIcon({
           className: 'yasgui-geo-measure-label',
-          html: `<div style="background:white;padding:2px 4px;border:1px solid #000;font:11px monospace;">${totalKm().toFixed(2)} km</div>`,
+          html: `<div style="background:var(--yasgui-bg-primary,white);color:var(--yasgui-text-primary,#333);padding:2px 6px;border:1px solid ${color};font:11px monospace;white-space:nowrap;">${totalKm().toFixed(3)} km</div>`,
         }),
       }).addTo(layer);
     }
@@ -73,6 +77,8 @@ export const addMeasureControl = (map) => {
       const a = L.DomUtil.create('a', '', div);
       a.href = '#'; a.title = 'Measure distance'; a.textContent = '📏';
       a.style.fontSize = '16px'; a.style.textAlign = 'center';
+      a.style.textDecoration = 'none';
+      a.style.lineHeight = '26px';
       L.DomEvent.on(a, 'click', (e) => {
         L.DomEvent.preventDefault(e);
         L.DomEvent.stopPropagation(e);
