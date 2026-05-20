@@ -2,8 +2,8 @@ import GeoPlugin from '../index.js';
 import 'leaflet/dist/leaflet.css';
 import './style.css';
 
-import '@zazuko/yasgui/build/yasgui.min.css';
-import Yasgui from '@zazuko/yasgui';
+import '@matdata/yasgui/build/yasgui.min.css';
+import Yasgui from '@matdata/yasgui';
 
 //Register the plugin to Yasr
 Yasgui.Yasr.registerPlugin('geo', GeoPlugin);
