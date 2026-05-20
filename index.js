@@ -187,12 +187,32 @@ const swapLatLon = (geometry) => {
 };
 
 const parseWKT = async (wkt) => {
+  const trimmed = wkt.trimStart();
+
+  // CRS84 — longitude/latitude, WGS84. Treat as plain WKT.
+  const crs84Match = trimmed.match(/^<(?:http:\/\/www\.opengis\.net\/def\/crs\/OGC\/[^>]*\/CRS84|urn:ogc:def:crs:OGC:[^:]*:CRS84)>\s*([\s\S]*)$/i);
+  if (crs84Match) {
+    return wktToGeoJSON(crs84Match[1].trim());
+  }
+
+  // urn:ogc:def:crs:EPSG::<code> — OGC URN form. Same semantics as
+  // <http://www.opengis.net/def/crs/EPSG/0/...>: axis order follows the
+  // authority definition (lat,lon for 4326).
+  const urnMatch = trimmed.match(/^<urn:ogc:def:crs:EPSG:[^:]*:(\d+)>\s*([\s\S]*)$/i);
+  if (urnMatch) {
+    const epsgCode = urnMatch[1];
+    const rawWkt = urnMatch[2].trim();
+    if (epsgCode === '4326') return swapLatLon(wktToGeoJSON(rawWkt));
+    await ensureSridRegistered(epsgCode);
+    return reprojectGeometry(wktToGeoJSON(rawWkt), `EPSG:${epsgCode}`);
+  }
+
   // OGC URI with EPSG:4326 — coordinates are in (lat, lon) order per the OGC standard.
   // Parse the raw WKT without betterknown's SRID handling, then swap axes ourselves.
   // This also correctly handles GeometryCollection sub-geometries, unlike betterknown's
   // built-in proj integration which loses the inherited SRID for nested geometries.
-  if (wkt.startsWith('<http://www.opengis.net/def/crs/EPSG/0/4326>')) {
-    const match = wkt.match(/^<http:\/\/www\.opengis\.net\/def\/crs\/EPSG\/0\/4326>\s*([\s\S]*)$/);
+  if (trimmed.startsWith('<http://www.opengis.net/def/crs/EPSG/0/4326>')) {
+    const match = trimmed.match(/^<http:\/\/www\.opengis\.net\/def\/crs\/EPSG\/0\/4326>\s*([\s\S]*)$/);
     if (match) {
       return swapLatLon(wktToGeoJSON(match[1].trim()));
     }
@@ -200,8 +220,8 @@ const parseWKT = async (wkt) => {
   // OGC URI with other EPSG codes — parse raw WKT and reproject manually.
   // betterknown's proj4 integration is bypassed because it loses the inherited SRID
   // when recursing into GeometryCollection sub-geometries (sets srid: null on inner geoms).
-  if (wkt.startsWith('<http://www.opengis.net/def/crs/EPSG/0/')) {
-    const match = wkt.match(/^<http:\/\/www\.opengis\.net\/def\/crs\/EPSG\/0\/(\d+)>\s*([\s\S]*)$/);
+  if (trimmed.startsWith('<http://www.opengis.net/def/crs/EPSG/0/')) {
+    const match = trimmed.match(/^<http:\/\/www\.opengis\.net\/def\/crs\/EPSG\/0\/(\d+)>\s*([\s\S]*)$/);
     if (match) {
       const epsgCode = match[1];
       await ensureSridRegistered(epsgCode);
@@ -209,8 +229,8 @@ const parseWKT = async (wkt) => {
     }
   }
   // SRID=xxxx; prefix — same issue with betterknown, reproject manually.
-  if (wkt.startsWith('SRID=') || wkt.startsWith('srid=')) {
-    const match = wkt.match(/^SRID=(\d+);([\s\S]*)$/i);
+  if (trimmed.startsWith('SRID=') || trimmed.startsWith('srid=')) {
+    const match = trimmed.match(/^SRID=(\d+);([\s\S]*)$/i);
     if (match) {
       const epsgCode = match[1];
       const rawWkt = match[2].trim();
