@@ -23,18 +23,36 @@
   "author": "Thibaut Goelff",
   "type": "module",
   "main": "index.js",
+  "module": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./dist/*": "./dist/*",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
   "files": [
     "index.js",
     "index.d.ts",
+    "src",
+    "dist",
+    "docs",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "dev": "vite",
+    "build": "node build.mjs",
     "build:demo": "vite build demo",
     "preview:demo": "vite preview --port 5174",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepublishOnly": "npm run build && npm test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.7",
