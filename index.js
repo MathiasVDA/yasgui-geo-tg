@@ -269,6 +269,25 @@ const parseWKT = async (wkt) => {
 }
 
 /**
+/**
+ * Detect the CRS URI used in a geometry column by scanning binding values for a
+ * leading <uri> prefix. Returns the first CRS URI found, or null for plain WKT.
+ * @param {Array} bindings
+ * @param {string} colName
+ * @returns {string|null}
+ */
+const detectWktCRS = (bindings, colName) => {
+  for (const row of bindings) {
+    const val = row[colName]?.value;
+    if (val) {
+      const m = val.trimStart().match(/^<([^>]+)>/);
+      if (m) return m[1];
+    }
+  }
+  return null;
+};
+
+/**
  * Map of supported RDF datatype URIs to converter functions.
  * Converter functions accept a string (literal value) and may return synchronously or return a Promise.
  * Synchronous converter example: JSON.parse (for geoJSONLiteral).
@@ -442,7 +461,10 @@ class GeoPlugin {
       this.columnLayers = new Map();
       this._featureCollections = new Map();
       if (opts.drawing) {
-        enableDrawing(map);
+        const bindings = this.yasr?.results?.json?.results?.bindings ?? [];
+        const geomCol = this.geometryColumns[0]?.colName;
+        const crs = geomCol ? detectWktCRS(bindings, geomCol) : null;
+        enableDrawing(map, { crs });
       }
       if (opts.exportControl) {
         addExportControl(map, () => ({
