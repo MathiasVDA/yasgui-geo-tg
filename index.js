@@ -4,6 +4,7 @@ import proj4 from 'proj4';
 import { wktToGeoJSON } from 'betterknown';
 import { renderPopup } from './src/popup.js';
 import { injectLatLonPointColumn } from './src/latlon.js';
+import { parseGML } from './src/gml.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -258,6 +259,7 @@ const conversions = {
   'http://www.opengis.net/ont/geosparql#wktLiteral': parseWKT,
   'http://www.openlinksw.com/schemas/virtrdf#Geometry': parseWKT,
   'http://www.opengis.net/ont/geosparql#geoJSONLiteral': JSON.parse,
+  'http://www.opengis.net/ont/geosparql#gmlLiteral': parseGML,
 };
 
 /**
