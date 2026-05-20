@@ -2,6 +2,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import proj4 from 'proj4';
 import { wktToGeoJSON } from 'betterknown';
+import { renderPopup } from './src/popup.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -386,18 +387,15 @@ class GeoPlugin {
         },
         onEachFeature: (feature, layer) => {
           const p = feature.properties;
-          // By default, show all properties in popup
-          const DEFAULT_CONTENT_FN = () => (Object.keys(p).map(
-            (k) =>
-              `<b>${k}:</b> ${
-                p[k].value.length > 120
-                  ? p[k].value.substring(0, 120) + '...'
-                  : p[k].value
-              }`,
-          )).join('<br/>');
-          // If ?wktLabel property is present, use it as popup content
-          const popupContent = p.wktLabel?.value || DEFAULT_CONTENT_FN();
-          layer.bindPopup(popupContent);
+          // If ?wktLabel property is present, use it as popup content (plain text only).
+          if (p.wktLabel?.value) {
+            const span = document.createElement('span');
+            span.textContent = p.wktLabel.value;
+            layer.bindPopup(span);
+          } else {
+            // Safe DOM rendering of all bindings; auto-linkify IRIs / images.
+            layer.bindPopup(renderPopup(p, { skip: ['wktLabel', 'wktTooltip', 'wktColor'] }));
+          }
 
           // Add a tooltip if ?wktTooltip property is present
           if (p.wktTooltip?.value) {
