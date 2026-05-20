@@ -11,6 +11,7 @@ import { injectLatLonPointColumn } from './src/latlon.js';
 import { parseGML } from './src/gml.js';
 import { enableDrawing } from './src/draw.js';
 import { simplifyFeatureCollection } from './src/simplify.js';
+import { addExportControl } from './src/export.js';
 
 // Known SRID proj4 definitions. Add more as needed.
 const SRID_PROJ = {
@@ -322,6 +323,7 @@ const DEFAULT_OPTIONS = {
   heatmapBlur: 15,
   drawing: false,
   simplifyTolerance: 0,
+  exportControl: true,
 };
 
 /**
@@ -403,8 +405,16 @@ class GeoPlugin {
       this.layerControl = L.control.layers(basemaps, {}).addTo(map);
       this.map = map;
       this.columnLayers = new Map();
+      this._featureCollections = new Map();
       if (opts.drawing) {
         enableDrawing(map);
+      }
+      if (opts.exportControl) {
+        addExportControl(map, () => ({
+          type: 'FeatureCollection',
+          features: Array.from(this._featureCollections.values())
+            .flatMap(fc => fc.features || []),
+        }));
       }
     }
     this.yasr.resultsEl.appendChild(this.container);
@@ -415,6 +425,7 @@ class GeoPlugin {
       this.map.removeLayer(lg);
     }
     this.columnLayers.clear();
+    this._featureCollections.clear();
 
     const palette = ['#3388ff', '#e6550d', '#31a354', '#756bb1', '#d62728', '#17becf'];
     const allBounds = L.latLngBounds([]);
@@ -428,6 +439,7 @@ class GeoPlugin {
       const simplified = opts.simplifyTolerance > 0
         ? simplifyFeatureCollection(geojson, opts.simplifyTolerance)
         : geojson;
+      this._featureCollections.set(colName, simplified);
       const layerColor = palette[idx % palette.length];
       const DEFAULT_COLOR = opts.defaultColor === DEFAULT_OPTIONS.defaultColor
         ? layerColor
