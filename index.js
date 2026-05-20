@@ -333,7 +333,9 @@ const DEFAULT_OPTIONS = {
   clustering: true,
   clusterMinPoints: 50,
   maxClusterRadius: 60,
+  clusterIconSize: 24,
   heatmap: false,
+  heatmapControl: true,
   heatmapRadius: 25,
   heatmapBlur: 15,
   drawing: false,
@@ -473,6 +475,35 @@ class GeoPlugin {
           this.updateMap();
         });
       }
+      if (opts.heatmapControl) {
+        const HeatToggle = L.Control.extend({
+          options: { position: 'topleft' },
+          onAdd: () => {
+            const div = L.DomUtil.create('div', 'leaflet-bar yasgui-geo-heatmap-toggle');
+            const btn = document.createElement('a');
+            btn.href = '#';
+            btn.title = opts.heatmap ? 'Switch to marker view' : 'Switch to heatmap view';
+            btn.textContent = opts.heatmap ? '🔥' : '📍';
+            btn.style.fontSize = '16px';
+            btn.style.textAlign = 'center';
+            btn.style.textDecoration = 'none';
+            btn.style.lineHeight = '26px';
+            btn.style.display = 'block';
+            btn.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              this.options.heatmap = !this.options.heatmap;
+              btn.textContent = this.options.heatmap ? '🔥' : '📍';
+              btn.title = this.options.heatmap ? 'Switch to marker view' : 'Switch to heatmap view';
+              this.updateMap();
+            });
+            div.append(btn);
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+          },
+        });
+        new HeatToggle().addTo(map);
+      }
       if (opts.simplifyControl) {
         addSimplifyControl(map, opts.simplifyTolerance, {
           max: opts.simplifyMaxTolerance,
@@ -609,7 +640,20 @@ class GeoPlugin {
           && pointCount >= opts.clusterMinPoints
           && typeof L.markerClusterGroup === 'function';
         if (useCluster) {
-          const cluster = L.markerClusterGroup({ maxClusterRadius: opts.maxClusterRadius });
+          const sz = opts.clusterIconSize || 24;
+          const cluster = L.markerClusterGroup({
+            maxClusterRadius: opts.maxClusterRadius,
+            iconCreateFunction(c) {
+              const count = c.getChildCount();
+              const s = count < 10 ? sz : (count < 100 ? Math.round(sz * 1.4) : Math.round(sz * 1.7));
+              return L.divIcon({
+                html: `<div style="width:${s}px;height:${s}px;line-height:${s}px;border-radius:50%;background:rgba(110,204,57,0.6);border:2px solid rgba(110,204,57,1);text-align:center;font:bold ${Math.round(s * 0.5)}px sans-serif;">${count}</div>`,
+                className: 'yasgui-geo-cluster',
+                iconSize: [s, s],
+                iconAnchor: [s / 2, s / 2],
+              });
+            },
+          });
           cluster.addLayer(newLayers);
           lg.addLayer(cluster);
         } else {
