@@ -432,9 +432,7 @@ class GeoPlugin {
       });
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       const isDark = opts.darkMode === true || (opts.darkMode === 'auto' && prefersDark);
-      const initialBasemapName = isDark && basemaps['CartoDB Dark Matter']
-        ? 'CartoDB Dark Matter'
-        : opts.defaultBasemap;
+      const initialBasemapName = opts.defaultBasemap;
       const initialBasemap = basemaps[initialBasemapName] || Object.values(basemaps)[0];
       initialBasemap.addTo(map);
       this.layerControl = L.control.layers(basemaps, {}).addTo(map);
