@@ -104,7 +104,7 @@ const ensureSridRegistered = async (srid) => {
 };
 
 
-const basemaps = {
+const builtInBasemaps = {
   // OpenStreetMap
   openStreetMap: L.tileLayer(
     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -297,6 +297,20 @@ const createGeojson = async (bindings, column) => ({
 });
 
 /**
+ * Default plugin options. Override per-instance via Yasgui config:
+ *   yasr: { plugins: { geo: { ...overrides } } }
+ */
+const DEFAULT_OPTIONS = {
+  latLonAutoDetect: true,
+  defaultColor: '#3388ff',
+  defaultBasemap: 'openStreetMap',
+  initialView: { center: [50.6411, 4.6680], zoom: 5 },
+  maxZoom: 14,
+  minHeight: 500,
+  basemaps: null, // null = use built-in `basemaps`
+};
+
+/**
  * GeoPlugin: YASR plugin that displays geographic results in a Leaflet map.
  *
  * @class
@@ -312,6 +326,11 @@ class GeoPlugin {
     this.priority = 30;
     this.label = 'Geo';
     this.geometryColumns = [];
+    this.options = {
+      ...DEFAULT_OPTIONS,
+      ...(yasr?.config?.plugins?.geo?.dynamicConfig || {}),
+      ...(yasr?.config?.plugins?.geo || {}),
+    };
     this.updateColumns();
   }
 
@@ -354,16 +373,19 @@ class GeoPlugin {
    * @returns {Promise<void>}
    */
   async updateMap() {
+    const opts = this.options;
+    const basemaps = opts.basemaps || builtInBasemaps;
     if (!this.container) {
       this.container = document.createElement('div');
       this.container.style.height = '100%';
-      this.container.style.minHeight = '500px';
+      this.container.style.minHeight = `${opts.minHeight}px`;
       this.container.style.width = '100%';
       const map = L.map(this.container, {
-        center: [50 + 38 / 60 + 28 / 3600, 4 + 40 / 60 + 5 / 3600],
-        zoom: 5,
+        center: opts.initialView.center,
+        zoom: opts.initialView.zoom,
       });
-      basemaps.openStreetMap.addTo(map);
+      const initialBasemap = basemaps[opts.defaultBasemap] || Object.values(basemaps)[0];
+      initialBasemap.addTo(map);
       const lg = L.featureGroup().addTo(map);
       L.control.layers(basemaps, { Results: lg }).addTo(map);
       this.map = map;
@@ -381,8 +403,8 @@ class GeoPlugin {
         this.yasr.results.json.results.bindings,
         colName,
       );
-      
-      const DEFAULT_COLOR = '#3388ff'; // Choose your default color
+
+      const DEFAULT_COLOR = opts.defaultColor;
 
       const newLayers = L.geoJson(geojson, {
         pointToLayer: (feature, latlng) => {
@@ -425,24 +447,15 @@ class GeoPlugin {
         },
       });
       this.lg.addLayer(newLayers);
-
-      // Fit bounds if layer has features
-      if (geojson.features && geojson.features.length > 0) {
-        this.map.fitBounds(this.lg.getBounds(), {
-          padding: [20, 20],
-          maxZoom: 14,
-        });
-      }
     }
 
-    // Force map to redraw
+    // Force map to redraw, then fit bounds once for all combined layers.
     setTimeout(() => {
       this.map.invalidateSize();
-      // Fit bounds if layer has features
-      this.map.fitBounds(this.lg.getBounds(), {
-        padding: [20, 20],
-        maxZoom: 14,
-      });
+      const bounds = this.lg.getBounds();
+      if (bounds.isValid()) {
+        this.map.fitBounds(bounds, { padding: [20, 20], maxZoom: opts.maxZoom });
+      }
     }, 100);
   }
 

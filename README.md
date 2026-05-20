@@ -145,6 +145,10 @@ Then go to `http://localhost:5173/index.html` to see the demo. This environment 
 
 ![Crazy Query](crazy-query.png 'Crazy Query')
 
+## Plugin options
+
+The plugin accepts configuration via Yasgui's `yasr.plugins.geo` slot — basemaps, default color, initial view, etc. See [docs/options.md](docs/options.md) for the full reference.
+
 ## Coordinate Transformations
 
 - **Supported SRIDs (embedded):** `4326`, `3857`, `31370`, `4258`, `3035`, `25831`, `25832`, `25833`, `2154`, `27700`, `28992`, `3006`, `2056`, `4269`, `3978`.
