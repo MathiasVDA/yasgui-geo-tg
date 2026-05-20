@@ -147,7 +147,7 @@ Then go to `http://localhost:5173/index.html` to see the demo. This environment 
 
 ## Coordinate Transformations
 
-- **Supported SRIDs (embedded):** `4326`, `3857`, `31370`, `4258`, `3035`, `25832`, `25833`.
+- **Supported SRIDs (embedded):** `4326`, `3857`, `31370`, `4258`, `3035`, `25831`, `25832`, `25833`, `2154`, `27700`, `28992`, `3006`, `2056`, `4269`, `3978`.
 - **Behavior:** The plugin accepts WKT literals (and Geosparql WKT strings) and will following the GeoSPARQL standard. Note that when EPSG:4326 is specified, the coordinate order should be latitude, longitude. When it isn't specified, the order should be longitude, latitude.
 - **Auto download of CRS:**  CRS definitions will be automatically downloaded from `https://epsg.io/` when not embedded (see next section).
 

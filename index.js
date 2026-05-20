@@ -15,10 +15,26 @@ const SRID_PROJ = {
   '4258': '+proj=longlat +ellps=GRS80 +no_defs',
   // ETRS89 / LAEA Europe
   '3035': '+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs',
+  // ETRS89 / UTM zone 31N
+  '25831': '+proj=utm +zone=31 +ellps=GRS80 +units=m +no_defs',
   // ETRS89 / UTM zone 32N
   '25832': '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs',
   // ETRS89 / UTM zone 33N
   '25833': '+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs',
+  // RGF93 / Lambert-93 (France)
+  '2154': '+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+  // OSGB36 / British National Grid
+  '27700': '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +towgs84=446.448,-125.157,542.06,0.15,0.247,0.842,-20.489 +units=m +no_defs',
+  // Amersfoort / RD New (Netherlands)
+  '28992': '+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725 +units=m +no_defs',
+  // SWEREF99 TM (Sweden)
+  '3006': '+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+  // CH1903+ / LV95 (Switzerland)
+  '2056': '+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs',
+  // NAD83 geographic
+  '4269': '+proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs',
+  // NAD83 / Canada Atlas Lambert
+  '3978': '+proj=lcc +lat_1=49 +lat_2=77 +lat_0=49 +lon_0=-95 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs',
 };
 
 // Register known SRID projections with proj4
