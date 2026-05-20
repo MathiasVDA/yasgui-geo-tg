@@ -386,26 +386,34 @@ class GeoPlugin {
       });
       const initialBasemap = basemaps[opts.defaultBasemap] || Object.values(basemaps)[0];
       initialBasemap.addTo(map);
-      const lg = L.featureGroup().addTo(map);
-      L.control.layers(basemaps, { Results: lg }).addTo(map);
+      this.layerControl = L.control.layers(basemaps, {}).addTo(map);
       this.map = map;
-      this.lg = lg;
+      this.columnLayers = new Map();
     }
     this.yasr.resultsEl.appendChild(this.container);
 
-    this.lg.clearLayers();
+    // Remove previous per-column overlays from map + control
+    for (const [, lg] of this.columnLayers) {
+      this.layerControl.removeLayer(lg);
+      this.map.removeLayer(lg);
+    }
+    this.columnLayers.clear();
 
-    for (const geometryColumn of this.geometryColumns) {
+    const palette = ['#3388ff', '#e6550d', '#31a354', '#756bb1', '#d62728', '#17becf'];
+    const allBounds = L.latLngBounds([]);
+
+    for (const [idx, geometryColumn] of this.geometryColumns.entries()) {
       const colName = geometryColumn.colName;
-
-      // createGeojson may be async, awaiting ensures any fetch/registration is completed
       const geojson = await createGeojson(
         this.yasr.results.json.results.bindings,
         colName,
       );
+      const layerColor = palette[idx % palette.length];
+      const DEFAULT_COLOR = opts.defaultColor === DEFAULT_OPTIONS.defaultColor
+        ? layerColor
+        : opts.defaultColor;
 
-      const DEFAULT_COLOR = opts.defaultColor;
-
+      const lg = L.featureGroup();
       const newLayers = L.geoJson(geojson, {
         pointToLayer: (feature, latlng) => {
           const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;
@@ -420,17 +428,13 @@ class GeoPlugin {
         },
         onEachFeature: (feature, layer) => {
           const p = feature.properties;
-          // If ?wktLabel property is present, use it as popup content (plain text only).
           if (p.wktLabel?.value) {
             const span = document.createElement('span');
             span.textContent = p.wktLabel.value;
             layer.bindPopup(span);
           } else {
-            // Safe DOM rendering of all bindings; auto-linkify IRIs / images.
             layer.bindPopup(renderPopup(p, { skip: ['wktLabel', 'wktTooltip', 'wktColor'] }));
           }
-
-          // Add a tooltip if ?wktTooltip property is present
           if (p.wktTooltip?.value) {
             layer.bindTooltip(p.wktTooltip.value);
           }
@@ -438,23 +442,22 @@ class GeoPlugin {
         style: (feature) => {
           const color = feature.properties?.wktColor?.value || DEFAULT_COLOR;
           return {
-            color: color,          // Line/Polygon border color
-            fillColor: color,      // Polygon fill color
-            weight: 2,             // Line/Polygon border thickness
-            opacity: 0.7,          // Line/Polygon border opacity
-            fillOpacity: 0.5       // Polygon fill opacity
+            color, fillColor: color, weight: 2, opacity: 0.7, fillOpacity: 0.5,
           };
         },
       });
-      this.lg.addLayer(newLayers);
+      lg.addLayer(newLayers);
+      lg.addTo(this.map);
+      this.layerControl.addOverlay(lg, `?${colName}`);
+      this.columnLayers.set(colName, lg);
+      const b = lg.getBounds();
+      if (b.isValid()) allBounds.extend(b);
     }
 
-    // Force map to redraw, then fit bounds once for all combined layers.
     setTimeout(() => {
       this.map.invalidateSize();
-      const bounds = this.lg.getBounds();
-      if (bounds.isValid()) {
-        this.map.fitBounds(bounds, { padding: [20, 20], maxZoom: opts.maxZoom });
+      if (allBounds.isValid()) {
+        this.map.fitBounds(allBounds, { padding: [20, 20], maxZoom: opts.maxZoom });
       }
     }, 100);
   }
